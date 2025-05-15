@@ -1,15 +1,30 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import TicketList from './pages/TicketList';
+import Header from './components/Header';
+import PrivateRoute from './components/PrivateRoute';
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<h1>Home</h1>} />
-      <Route path="/ticket" element={<h1>Lista Ticket</h1>} />
-      <Route path="/login" element={<h1>Login</h1>} />
-    </Routes>
+    <div>
+      <Header />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/ticket"
+          element={
+            <PrivateRoute>
+              <TicketList />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
+    </div>
   );
 }
 
 export default App;
-// In questo file, abbiamo definito il componente principale `App`.
-// All'interno di `App`, abbiamo definito le rotte utilizzando il componente `Routes` e `Route` da `react-router-dom`.
+// This code defines the main App component for a React application.
+// It sets up routing using React Router, including routes for Home, Login, and TicketList pages.
