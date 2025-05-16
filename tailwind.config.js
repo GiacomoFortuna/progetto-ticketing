@@ -5,6 +5,4 @@ export default {
     extend: {},
   },
   plugins: [],
-};
-// // tailwind.config.js
-// // /** @type {import('tailwindcss').Config} */
+}

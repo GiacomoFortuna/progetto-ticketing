@@ -1,44 +1,63 @@
-import { useState } from 'react'; // Importa useState per gestire lo stato locale
-import { useNavigate } from 'react-router-dom'; // Importa useNavigate per la navigazione tra pagine
-import { useAuth } from '../context/AuthContext'; // Importa il custom hook per l'autenticazione
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 function Login() {
-  const { login } = useAuth(); // Estrae la funzione login dal contesto di autenticazione
-  const navigate = useNavigate(); // Ottiene la funzione per navigare tra le route
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const [username, setUsername] = useState(''); // Stato per il campo username
-  const [password, setPassword] = useState(''); // Stato per il campo password
-  const [error, setError] = useState(''); // Stato per eventuali messaggi di errore
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => { // Gestore per il submit del form
-    e.preventDefault(); // Previene il comportamento di default del form (refresh pagina)
-    const success = login(username, password); // Tenta il login con username e password
-    if (success) { // Se il login ha successo
-      navigate('/ticket'); // Naviga alla pagina /ticket
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = login(username, password);
+    if (success) {
+      navigate('/ticket');
     } else {
-      setError('Credenziali errate.'); // Mostra un messaggio di errore
+      setError('Credenziali errate.');
     }
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}> {/* Form con submit gestito da handleSubmit */}
-        <div>
-          <label>Username:</label>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} /> {/* Input per username */}
-        </div>
-        <div>
-          <label>Password:</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /> {/* Input per password */}
-        </div>
-        {error && <p style={{ color: 'red' }}>{error}</p>} {/* Mostra errore se presente */}
-        <button type="submit">Accedi</button> {/* Bottone per inviare il form */}
-      </form>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-400 via-green-500 to-green-700 px-4">
+      <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md mt-10">
+        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Login</h2>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="admin"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="1234"
+            />
+          </div>
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+          <button
+            type="submit"
+            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+          >
+            Entra
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
 
-export default Login; // Esporta il componente Login
-// Questo è un semplice componente di login per una applicazione React.
-// Include i campi username e password e gestisce il submit del form.
+export default Login;
+// This code defines a Login component for a React application.
+// It includes a form for users to enter their username and password.

@@ -1,3 +1,4 @@
+
 function Home() {
   return (
     <div className="text-center p-6">
@@ -6,7 +7,6 @@ function Home() {
     </div>
   );
 }
-
 export default Home;
 // This is a simple React component that serves as the home page of a ticketing system.
 // It includes a welcome message and a brief description of the system.
