@@ -18,9 +18,9 @@ function Header() {
   };
 
   return (
-    <header className="w-full bg-white shadow fixed top-0 left-0 z-50 transition-all">
+    <header className="w-full bg-gray-100 shadow fixed top-0 left-0 z-50 transition-all">
       {/* Contenitore principale dell'header */}
-      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between px-6 py-3">
+      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between px-6 py-5">
         {/* Logo Planetel che reindirizza alla home */}
         <Link to="/" className="flex items-center mb-2 md:mb-0">
           <img
