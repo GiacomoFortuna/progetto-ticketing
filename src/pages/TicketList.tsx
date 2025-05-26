@@ -1,154 +1,233 @@
 import { useEffect, useState } from 'react';
+import { getTickets, createTicket, updateTicketStatus } from '../services/api';
 
 type Ticket = {
   id: number;
   title: string;
   description: string;
-  status: 'open' | 'closed';
-  createdAt: string;
+  division: string;
+  client: string;
+  project?: string;
+  assigned_to?: string;
+  status: string;
+  created_at: string;
 };
 
-const initialTickets: Ticket[] = [
-  {
-    id: 1,
-    title: 'Internet non funziona',
-    description: 'La connessione è assente in sede di Bergamo',
-    status: 'open',
-    createdAt: '2025-05-16T09:00:00Z',
-  },
-  {
-    id: 2,
-    title: 'Problemi con l’email',
-    description: 'Impossibile accedere alla webmail aziendale',
-    status: 'closed',
-    createdAt: '2025-05-14T14:30:00Z',
-  },
-];
-
-export default function TicketList() {
+function TicketList() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [filter, setFilter] = useState<'all' | 'open' | 'closed'>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleClose = (id: number) => {
-    setTickets((prev: Ticket[]) =>
-      prev.map((ticket: Ticket) =>
-        ticket.id === id ? { ...ticket, status: 'closed' } : ticket
-      )
-    );
+  const [newTicket, setNewTicket] = useState({
+    title: '',
+    description: '',
+    division: '',
+    client: '',
+    project: '',
+    assigned_to: '',
+  });
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    setNewTicket({ ...newTicket, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createTicket(newTicket);
+      const updated = await getTickets();
+      setTickets(updated);
+      setNewTicket({
+        title: '',
+        description: '',
+        division: '',
+        client: '',
+        project: '',
+        assigned_to: '',
+      });
+    } catch (err) {
+      alert('Errore nel salvataggio ticket');
+    }
   };
 
   useEffect(() => {
-    // Simulazione caricamento iniziale
-    setTimeout(() => {
-      setTickets(initialTickets);
-    }, 500);
+    getTickets()
+      .then(setTickets)
+      .catch((err: any) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !description.trim()) return;
-
-    const newTicket: Ticket = {
-      id: Date.now(),
-      title,
-      description,
-      status: 'open',
-      createdAt: new Date().toISOString(),
-    };
-
-    setTickets([newTicket, ...tickets]); // aggiunge in cima
-    setTitle('');
-    setDescription('');
-  };
-
-  // Simulazione chiusura ticket
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Gestione Ticket</h1>
+    <div className="max-w-4xl mx-auto mt-20 p-4">
+      <h1 className="text-2xl font-bold mb-6">Ticket in gestione</h1>
 
-      {/* Form creazione ticket */}
-      <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 space-y-4">
-        <h2 className="text-lg font-semibold">Nuovo Ticket</h2>
-        <div>
-          <input
-            type="text"
-            placeholder="Titolo"
-            className="w-full p-2 border rounded"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-        <div>
-          <textarea
-            placeholder="Descrizione"
-            className="w-full p-2 border rounded resize-none"
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
+      {/* FORM */}
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow mb-6 space-y-4">
+        <input
+          name="title"
+          value={newTicket.title}
+          onChange={handleChange}
+          placeholder="Titolo"
+          required
+          className="w-full border p-2 rounded"
+        />
+        <textarea
+          name="description"
+          value={newTicket.description}
+          onChange={handleChange}
+          placeholder="Descrizione"
+          required
+          className="w-full border p-2 rounded"
+        />
+        <input
+          name="client"
+          value={newTicket.client}
+          onChange={handleChange}
+          placeholder="Cliente"
+          required
+          className="w-full border p-2 rounded"
+        />
+        <input
+          name="project"
+          value={newTicket.project}
+          onChange={handleChange}
+          placeholder="Progetto"
+          className="w-full border p-2 rounded"
+        />
+        <input
+          name="assigned_to"
+          value={newTicket.assigned_to}
+          onChange={handleChange}
+          placeholder="Assegnato a"
+          className="w-full border p-2 rounded"
+        />
+
+        <select
+          name="division"
+          value={newTicket.division}
+          onChange={handleChange}
+          required
+          className="w-full border p-2 rounded"
+        >
+          <option value="">Seleziona Divisione</option>
+          <option value="cloud">Cloud</option>
+          <option value="networking">Networking</option>
+          <option value="it-care">IT-Care</option>
+        </select>
+
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition"
         >
           Crea Ticket
         </button>
       </form>
 
-      {/* 🔥 Filtro stato */}
-      <div className="flex gap-3 mb-6">
-        {['all', 'open', 'closed'].map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilter(status as 'all' | 'open' | 'closed')}
-            className={`px-4 py-2 rounded font-medium transition-colors ${
-              filter === status
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            {status === 'all' ? 'Tutti' : status === 'open' ? 'Aperti' : 'Chiusi'}
-          </button>
-        ))}
-      </div>
-
-      {/* 🔥 Lista filtrata */}
-      {tickets
-        .filter((ticket) =>
-          filter === 'all' ? true : ticket.status === filter
-        )
-        .map((ticket) => (
-          <div
-            key={ticket.id}
-            className={`bg-white rounded-lg shadow p-4 mb-4 border-l-4 transition-all duration-300 hover:scale-[1.01] ${
-              ticket.status === 'open' ? 'border-green-500' : 'border-gray-400'
-            }`}
-          >
-            <h2 className="text-lg font-semibold">{ticket.title}</h2>
-            <p className="text-sm text-gray-600">{ticket.description}</p>
-            <div className="text-sm mt-2 flex justify-between items-center text-gray-500">
-              <span>
-                Stato:{' '}
-                <strong className={ticket.status === 'open' ? 'text-green-600' : 'text-gray-500'}>
+      {/* LISTA */}
+      {loading ? (
+        <p>Caricamento...</p>
+      ) : error ? (
+        <p className="text-red-600">Errore: {error}</p>
+      ) : (
+        <ul className="space-y-4">
+          {tickets.map((ticket) => (
+            <li key={ticket.id} className="bg-white p-4 rounded shadow">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="font-semibold text-lg">{ticket.title}</h2>
+                <span
+                  className={`text-sm font-medium px-2 py-1 rounded-full
+                    ${ticket.status === 'open' ? 'bg-green-100 text-green-700' : ''}
+                    ${ticket.status === 'in-progress' ? 'bg-blue-100 text-blue-700' : ''}
+                    ${ticket.status === 'closed' ? 'bg-gray-200 text-gray-700' : ''}
+                    ${ticket.status === 'paused' ? 'bg-yellow-100 text-yellow-700' : ''}`}
+                >
                   {ticket.status}
-                </strong>
-              </span>
-              <span>{new Date(ticket.createdAt).toLocaleString()}</span>
-            </div>
+                </span>
+              </div>
 
-            {/* 🔘 Bottone "Chiudi" solo se aperto */}
-            {ticket.status === 'open' && (
-              <button
-                onClick={() => handleClose(ticket.id)}
-                className="mt-3 px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition"
-              >
-                Chiudi
-              </button>
-            )}
-          </div>
-        ))}
+              <p className="text-gray-700">{ticket.description}</p>
+              <p className="text-sm text-gray-500">
+                Divisione: {ticket.division} – Cliente: {ticket.client}
+              </p>
+
+              {/* BOTTONE CAMBIA STATO */}
+              {ticket.status !== 'closed' && (
+                <div className="mt-3 flex gap-2">
+                  {ticket.status === 'open' && (
+                    <>
+                      <button
+                        onClick={async () => {
+                          await updateTicketStatus(ticket.id, 'in-progress');
+                          const updated = await getTickets();
+                          setTickets(updated);
+                        }}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                      >
+                        Inizia
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await updateTicketStatus(ticket.id, 'paused');
+                          const updated = await getTickets();
+                          setTickets(updated);
+                        }}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
+                      >
+                        Metti in pausa
+                      </button>
+                    </>
+                  )}
+
+                  {ticket.status === 'in-progress' && (
+                    <>
+                      <button
+                        onClick={async () => {
+                          await updateTicketStatus(ticket.id, 'paused');
+                          const updated = await getTickets();
+                          setTickets(updated);
+                        }}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
+                      >
+                        Pausa
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          await updateTicketStatus(ticket.id, 'closed');
+                          const updated = await getTickets();
+                          setTickets(updated);
+                        }}
+                        className="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1 rounded"
+                      >
+                        Chiudi
+                      </button>
+                    </>
+                  )}
+
+                  {ticket.status === 'paused' && (
+                    <button
+                      onClick={async () => {
+                        await updateTicketStatus(ticket.id, 'in-progress');
+                        const updated = await getTickets();
+                        setTickets(updated);
+                      }}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                    >
+                      Riprendi
+                    </button>
+                  )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
+
+export default TicketList;
+// This code defines a TicketList component that fetches and displays a list of tickets.
+// It also includes a form to create new tickets, handling state and form submission.
