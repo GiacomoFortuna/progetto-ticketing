@@ -21,17 +21,23 @@ export async function createTicket(data: any) {
   return res.json();
 }
 // Aggiorna un ticket esistente nel backend
-export async function updateTicketStatus(id: number, status: string) {
-  const res = await fetch(`http://localhost:3001/api/tickets/${id}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ status }),
-  });
+export async function updateTicketStatus(id: number, status: string): Promise<void> {
+  try {
+    const response = await fetch(`http://localhost:3001/api/tickets/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
 
-  if (!res.ok) throw new Error('Errore aggiornamento stato');
-  return res.json();
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Errore aggiornamento stato:', errorData);
+      throw new Error(errorData.error || 'Errore aggiornamento stato');
+    }
+  } catch (err) {
+    console.error('Errore durante la richiesta PATCH:', err);
+    throw err;
+  }
 }
 
 
