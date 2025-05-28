@@ -1,72 +1,72 @@
-// Importa gli hook useState da React e useNavigate da react-router-dom
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// Importa l'hook personalizzato useAuth dal contesto di autenticazione
 import { useAuth } from '../context/AuthContext';
 
 function Login() {
-  // Estrae la funzione login dal contesto di autenticazione
   const { login } = useAuth();
-  // Hook per la navigazione tra le pagine
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Stato per gestire il valore dell'username
-  const [username, setUsername] = useState('');
-  // Stato per gestire il valore della password
-  const [password, setPassword] = useState('');
-  // Stato per gestire eventuali messaggi di errore
-  const [error, setError] = useState('');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
 
-  // Funzione chiamata al submit del form
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); // Previene il comportamento di default del form (refresh pagina)
-    const success = login(username, password); // Tenta il login con username e password
-    if (success) {
-      navigate('/ticket'); // Se il login ha successo, reindirizza alla pagina /ticket
-    } else {
-      setError('Credenziali errate.'); // Altrimenti mostra un messaggio di errore
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/login', {
+        // ✅ URL aggiornata per il login
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Errore di login');
+      }
+
+      const { token, user } = await response.json();
+
+      // ✅ Salviamo token in localStorage
+      localStorage.setItem('token', token);
+
+      // ✅ Salviamo i dati utente nel context
+      login(user, token);
+
+      navigate('/ticket');
+    } catch (err: any) {
+      setError(err.message);
     }
   };
 
-  // Renderizza il form di login
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-400 via-green-500 to-green-700 px-4">
-      <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md mt-10">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Login</h2>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)} // Aggiorna lo stato username ad ogni modifica
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="admin"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)} // Aggiorna lo stato password ad ogni modifica
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="1234"
-            />
-          </div>
-          {/* Se c'è un errore, mostra il messaggio */}
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <button
-            type="submit"
-            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
-          >
-            Entra
-          </button>
-        </form>
-      </div>
+    <div className="min-h-screen flex items-center justify-center">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-sm">
+        <h2 className="text-xl font-semibold mb-4">Login</h2>
+        {error && <p className="text-red-500">{error}</p>}
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="w-full mb-3 p-2 border rounded"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full mb-4 p-2 border rounded"
+        />
+        <button type="submit" className="w-full bg-green-600 text-white py-2 rounded">
+          Accedi
+        </button>
+      </form>
     </div>
   );
 }
 
 export default Login;
-// Questo componente gestisce il login dell'utente mostrando un form e gestendo l'autenticazione.
+// This code defines a Login component for a React application.
+// It handles user authentication by submitting a login form to a backend API.

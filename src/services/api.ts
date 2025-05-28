@@ -1,8 +1,17 @@
 const API_URL = 'http://localhost:3001/api';
 
+// Recupera il token JWT dal localStorage
+function getToken() {
+  return localStorage.getItem('token');
+}
+
 // Recupera tutti i ticket dal backend
 export async function getTickets() {
-  const res = await fetch(`${API_URL}/tickets`);
+  const res = await fetch(`${API_URL}/tickets`, {
+    headers: {
+      'Authorization': `Bearer ${getToken()}`,
+    },
+  });
   if (!res.ok) throw new Error('Errore nel recupero dei ticket');
   return res.json();
 }
@@ -13,6 +22,7 @@ export async function createTicket(data: any) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getToken()}`,
     },
     body: JSON.stringify(data),
   });
@@ -20,12 +30,16 @@ export async function createTicket(data: any) {
   if (!res.ok) throw new Error('Errore nella creazione del ticket');
   return res.json();
 }
+
 // Aggiorna un ticket esistente nel backend
 export async function updateTicketStatus(id: number, status: string): Promise<void> {
   try {
-    const response = await fetch(`http://localhost:3001/api/tickets/${id}`, {
+    const response = await fetch(`${API_URL}/tickets/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`,
+      },
       body: JSON.stringify({ status }),
     });
 

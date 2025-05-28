@@ -35,6 +35,7 @@ router.get('/', async (req, res) => {
         t.assigned_to,
         t.status,
         t.created_at,
+        t.working_hours, -- Include working_hours in the query
         p.name AS project_name,
         i.name AS infrastructure_name,
         c.name AS client_name
