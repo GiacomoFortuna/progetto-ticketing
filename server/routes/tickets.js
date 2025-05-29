@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // Function to calculate working hours between two dates
 function calcolaOreLavorative(startDate, endDate) {
@@ -52,35 +53,52 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/tickets → inserisce un nuovo ticket
-router.post('/', async (req, res) => {
-  const {
-    title,
-    description,
-    division,
-    client,
-    assigned_to,
-    status,
-    project_id, // ← questo arriva dal form
-  } = req.body;
+// POST /api/tickets
+router.post('/', authMiddleware, async (req, res) => {
+  const { title, description, project_id } = req.body;
 
-  if (!title || !description || !division || !client) {
+  // Prendi i dati dal token JWT
+  const username = req.user.username;
+  const division = req.user.division;
+
+  if (!title || !description || !project_id) {
     return res.status(400).json({ error: 'Campi obbligatori mancanti' });
   }
 
   try {
+    // Ricava il infrastructure_id dalla tabella projects
+    const projectResult = await db.query(
+      'SELECT infrastructure_id FROM projects WHERE id = $1',
+      [project_id]
+    );
+    if (projectResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Progetto non trovato' });
+    }
+
+    const infra_id = projectResult.rows[0].infrastructure_id;
+
+    // Ricava il client_id dalla tabella infrastructures
+    const infraResult = await db.query(
+      'SELECT client_id FROM infrastructures WHERE id = $1',
+      [infra_id]
+    );
+    if (infraResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Infrastruttura non trovata' });
+    }
+
+    const client_id = infraResult.rows[0].client_id;
+
+    // Crea il ticket
     const result = await db.query(
-      `INSERT INTO tickets 
-      (title, description, division, client, assigned_to, status, project_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *`,
-      [title, description, division, client, assigned_to, status || 'open', project_id]
+      `INSERT INTO tickets (title, description, division, assigned_to, client_id, project_id, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'open') RETURNING *`,
+      [title, description, division, username, client_id, project_id]
     );
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Errore inserimento ticket:', err);
-    res.status(500).json({ error: 'Errore durante la creazione del ticket' });
+    console.error('Errore nella creazione del ticket:', err);
+    res.status(500).json({ error: 'Errore nella creazione del ticket' });
   }
 });
 

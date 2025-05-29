@@ -32,10 +32,8 @@ function TicketList() {
   const [newTicket, setNewTicket] = useState({
     title: '',
     description: '',
-    division: '',
     client: '',
     project_id: '',
-    assigned_to: '',
   });
 
   const handleChange = (
@@ -48,7 +46,8 @@ function TicketList() {
     e.preventDefault();
     try {
       await createTicket({
-        ...newTicket,
+        title: newTicket.title,
+        description: newTicket.description,
         project_id: newTicket.project_id,
       });
       const updated = await getTickets();
@@ -56,10 +55,8 @@ function TicketList() {
       setNewTicket({
         title: '',
         description: '',
-        division: '',
         client: '',
         project_id: '',
-        assigned_to: '',
       });
     } catch (err) {
       alert('Errore nel salvataggio ticket');
@@ -180,26 +177,6 @@ function TicketList() {
           </select>
         )}
 
-        <input
-          name="assigned_to"
-          value={newTicket.assigned_to}
-          onChange={handleChange}
-          placeholder="Assegnato a"
-          className="w-full border p-2 rounded"
-        />
-
-        <select
-          name="division"
-          value={newTicket.division}
-          onChange={handleChange}
-          required
-          className="w-full border p-2 rounded"
-        >
-          <option value="">Seleziona Divisione</option>
-          <option value="cloud">Cloud</option>
-          <option value="networking">Networking</option>
-          <option value="it-care">IT-Care</option>
-        </select>
 
         <button
           type="submit"
@@ -248,10 +225,7 @@ function TicketList() {
                     </span>
                   </div>
 
-                  <p className="text-gray-700">{ticket.description}</p>
-                  <p className="text-sm text-gray-500">
-                    Divisione: {ticket.division} – Cliente: {ticket.client}
-                  </p>
+                 
 
                   {/* New Details */}
                   <p className="text-sm text-gray-600 mt-1">

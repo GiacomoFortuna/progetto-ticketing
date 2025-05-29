@@ -1,7 +1,7 @@
 // server/hashPassword.js
 const bcrypt = require('bcrypt');
 
-const password = 'Okciao10!'; // Cambia qui la password da criptare
+const password = 'Bianchi10!'; // Cambia qui la password da criptare
 const saltRounds = 10;
 
 bcrypt.hash(password, saltRounds)
