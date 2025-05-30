@@ -2,12 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const ticketRoutes = require('./routes/tickets');
-const authRoutes = require('./routes/auth'); // Use require, not import
+const authRoutes = require('./routes/auth');
+const UserRoutes = require('./routes/users') // Use require, not import
 // Middleware
 app.use(cors()); // Permette le richieste dal frontend (React)
 app.use(express.json()); // Permette di leggere il corpo JSON delle richieste
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/users', UserRoutes); // Aggiungi le route degli utenti 
+
 // Route di test base
 app.get('/', (req, res) => {
   res.send('Server backend attivo! ✅');

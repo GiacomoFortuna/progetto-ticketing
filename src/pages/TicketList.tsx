@@ -14,6 +14,7 @@ type Ticket = {
   assigned_to?: string;
   status: string;
   created_at: string;
+  created_by: string;
   working_hours?: number; // Add working_hours to the Ticket type
 };
 
@@ -27,6 +28,8 @@ function TicketList() {
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [selectedInfrastructure, setSelectedInfrastructure] = useState('');
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+
 
 
   const [newTicket, setNewTicket] = useState({
@@ -34,6 +37,8 @@ function TicketList() {
     description: '',
     client: '',
     project_id: '',
+    division: '',
+    assigned_to: '',
   });
 
   const handleChange = (
@@ -45,11 +50,7 @@ function TicketList() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createTicket({
-        title: newTicket.title,
-        description: newTicket.description,
-        project_id: newTicket.project_id,
-      });
+      await createTicket(newTicket);
       const updated = await getTickets();
       setTickets(updated);
       setNewTicket({
@@ -57,6 +58,8 @@ function TicketList() {
         description: '',
         client: '',
         project_id: '',
+        division: '',
+        assigned_to: '',
       });
     } catch (err) {
       alert('Errore nel salvataggio ticket');
@@ -177,6 +180,50 @@ function TicketList() {
           </select>
         )}
 
+        {/* DIVISIONE */}
+        <select
+          name="division"
+          value={newTicket.division}
+          onChange={async (e) => {
+            const division = e.target.value;
+            setNewTicket({ ...newTicket, division, assigned_to: '' });
+
+            // Carica utenti per divisione
+            if (division) {
+              try {
+                const res = await fetch(`http://localhost:3001/api/users/by-division?division=${division}`);
+                const data = await res.json();
+                setAvailableUsers(data);
+              } catch (err) {
+                console.error('Errore caricamento utenti:', err);
+                setAvailableUsers([]);
+              }
+            } else {
+              setAvailableUsers([]);
+            }
+          }}
+          required
+          className="w-full border p-2 rounded"
+        >
+          <option value="">Seleziona Divisione</option>
+          <option value="cloud">Cloud</option>
+          <option value="networking">Networking</option>
+          <option value="it-care">IT-Care</option>
+        </select>
+        {/* ASSEGNATO A */}
+        <select
+          name="assigned_to"
+          value={newTicket.assigned_to}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          <option value="">Assegna a tutta la divisione</option>
+          {availableUsers.map((u) => (
+            <option key={u.username} value={u.username}>
+              {u.username}
+            </option>
+          ))}
+        </select>
 
         <button
           type="submit"
@@ -225,7 +272,13 @@ function TicketList() {
                     </span>
                   </div>
 
-                 
+                  <p className="text-gray-700">{ticket.description}</p>
+                  <p className="text-sm text-gray-500">
+                    Divisione: {ticket.division} 
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Creato da: {ticket.created_by}
+                  </p>
 
                   {/* New Details */}
                   <p className="text-sm text-gray-600 mt-1">

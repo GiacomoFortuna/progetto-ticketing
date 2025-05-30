@@ -25,7 +25,9 @@ function calcolaOreLavorative(startDate, endDate) {
 }
 
 // GET /api/tickets → restituisce tutti i ticket
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
+  const division = req.user.division; // viene dal token
+
   try {
     const result = await db.query(`
       SELECT 
@@ -36,7 +38,8 @@ router.get('/', async (req, res) => {
         t.assigned_to,
         t.status,
         t.created_at,
-        t.working_hours, -- Include working_hours in the query
+        t.working_hours,
+        t.created_by,
         p.name AS project_name,
         i.name AS infrastructure_name,
         c.name AS client_name
@@ -44,8 +47,10 @@ router.get('/', async (req, res) => {
       LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN infrastructures i ON p.infrastructure_id = i.id
       LEFT JOIN clients c ON i.client_id = c.id
+      WHERE t.division = $1
       ORDER BY t.created_at DESC
-    `);
+    `, [division]);
+
     res.json(result.rows);
   } catch (err) {
     console.error('Errore nel recupero dei ticket:', err);
@@ -53,46 +58,17 @@ router.get('/', async (req, res) => {
   }
 });
 
+
 // POST /api/tickets
 router.post('/', authMiddleware, async (req, res) => {
-  const { title, description, project_id } = req.body;
-
-  // Prendi i dati dal token JWT
-  const username = req.user.username;
-  const division = req.user.division;
-
-  if (!title || !description || !project_id) {
-    return res.status(400).json({ error: 'Campi obbligatori mancanti' });
-  }
+const { title, description, client_id, project_id, assigned_to, division } = req.body;
+const created_by = req.user.username;
 
   try {
-    // Ricava il infrastructure_id dalla tabella projects
-    const projectResult = await db.query(
-      'SELECT infrastructure_id FROM projects WHERE id = $1',
-      [project_id]
-    );
-    if (projectResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Progetto non trovato' });
-    }
-
-    const infra_id = projectResult.rows[0].infrastructure_id;
-
-    // Ricava il client_id dalla tabella infrastructures
-    const infraResult = await db.query(
-      'SELECT client_id FROM infrastructures WHERE id = $1',
-      [infra_id]
-    );
-    if (infraResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Infrastruttura non trovata' });
-    }
-
-    const client_id = infraResult.rows[0].client_id;
-
-    // Crea il ticket
     const result = await db.query(
-      `INSERT INTO tickets (title, description, division, assigned_to, client_id, project_id, status)
-       VALUES ($1, $2, $3, $4, $5, $6, 'open') RETURNING *`,
-      [title, description, division, username, client_id, project_id]
+      `INSERT INTO tickets (title, description, division, client_id, project_id, assigned_to, status, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, 'open', $7) RETURNING *`,
+      [title, description, division, client_id, project_id, assigned_to, created_by]
     );
 
     res.status(201).json(result.rows[0]);
@@ -103,29 +79,33 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // PUT /api/tickets/:id → aggiorna un ticket esistente
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
+  const userDivision = req.user.division; // divisione dell'utente loggato
 
   if (!status) {
     return res.status(400).json({ error: 'Stato mancante' });
   }
 
   try {
+    // Verifica se il ticket esiste e a quale divisione appartiene
+    const ticketCheck = await db.query('SELECT division, created_at FROM tickets WHERE id = $1', [id]);
+    if (ticketCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Ticket non trovato' });
+    }
+
+    const ticket = ticketCheck.rows[0];
+
+    if (ticket.division !== userDivision) {
+      return res.status(403).json({ error: 'Non autorizzato a modificare ticket di altre divisioni' });
+    }
+
     let result;
-
     if (status === 'closed') {
-      // Retrieve created_at for the ticket
-      const ticketResult = await db.query('SELECT created_at FROM tickets WHERE id = $1', [id]);
-      if (ticketResult.rows.length === 0) {
-        return res.status(404).json({ error: 'Ticket non trovato' });
-      }
-
-      const createdAt = ticketResult.rows[0].created_at;
       const closedAt = new Date();
-      const workingHours = calcolaOreLavorative(createdAt, closedAt);
+      const workingHours = calcolaOreLavorative(ticket.created_at, closedAt);
 
-      // Update the ticket with status, closed_at, and working_hours
       result = await db.query(
         `UPDATE tickets 
          SET status = $1, closed_at = $2, working_hours = $3
@@ -134,15 +114,10 @@ router.patch('/:id', async (req, res) => {
         [status, closedAt, workingHours, id]
       );
     } else {
-      // Update only the status
       result = await db.query(
         `UPDATE tickets SET status = $1 WHERE id = $2 RETURNING *`,
         [status, id]
       );
-    }
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Ticket non trovato' });
     }
 
     res.json(result.rows[0]);
