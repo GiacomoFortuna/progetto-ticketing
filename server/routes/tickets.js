@@ -25,39 +25,62 @@ function calcolaOreLavorative(startDate, endDate) {
 }
 
 // GET /api/tickets → restituisce tutti i ticket
-router.get('/', authMiddleware, async (req, res) => {
-  const division = req.user.division; // viene dal token
+router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
+  // Fix: Check if req.user exists and fallback if not
+  const user = req.user || {};
+  const division = user.division;
+  const isManager = user.role === 'manager' || user.is_manager === true;
+
+  let query = `
+    SELECT 
+      t.id,
+      t.title,
+      t.description,
+      t.division,
+      t.assigned_to,
+      t.status,
+      t.created_at,
+      t.working_hours,
+      t.created_by,
+      p.name AS project_name,
+      i.name AS infrastructure_name,
+      c.name AS client_name
+    FROM tickets t
+    LEFT JOIN projects p ON t.project_id = p.id
+    LEFT JOIN infrastructures i ON p.infrastructure_id = i.id
+    LEFT JOIN clients c ON i.client_id = c.id
+  `;
+  const params = [];
+  let whereClauses = [];
+
+  // Filtro per divisione se manager o se query param presente
+  if (isManager && req.query.division) {
+    whereClauses.push('t.division = $' + (params.length + 1));
+    params.push(req.query.division);
+  } else if (!isManager && division) {
+    whereClauses.push('t.division = $' + (params.length + 1));
+    params.push(division);
+  }
+
+  // Filtro per search (titolo o descrizione)
+  if (req.query.search) {
+    whereClauses.push(`(t.title ILIKE $${params.length + 1} OR t.description ILIKE $${params.length + 1})`);
+    params.push(`%${req.query.search}%`);
+  }
+
+  if (whereClauses.length > 0) {
+    query += ' WHERE ' + whereClauses.join(' AND ');
+  }
+  query += ' ORDER BY t.created_at DESC';
 
   try {
-    const result = await db.query(`
-      SELECT 
-        t.id,
-        t.title,
-        t.description,
-        t.division,
-        t.assigned_to,
-        t.status,
-        t.created_at,
-        t.working_hours,
-        t.created_by,
-        p.name AS project_name,
-        i.name AS infrastructure_name,
-        c.name AS client_name
-      FROM tickets t
-      LEFT JOIN projects p ON t.project_id = p.id
-      LEFT JOIN infrastructures i ON p.infrastructure_id = i.id
-      LEFT JOIN clients c ON i.client_id = c.id
-      WHERE t.division = $1
-      ORDER BY t.created_at DESC
-    `, [division]);
-
+    const result = await db.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Errore nel recupero dei ticket:', err);
     res.status(500).json({ error: 'Errore nel recupero dei ticket' });
   }
 });
-
 
 // POST /api/tickets
 router.post('/', authMiddleware, async (req, res) => {

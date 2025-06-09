@@ -10,6 +10,7 @@ const router = express.Router();
 // POST /api/login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
+
   if (!username || !password) {
     return res.status(400).json({ error: 'Username e password obbligatori' });
   }
@@ -23,15 +24,19 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // ✅ usa il campo corretto password_hash dal database
+    // ✅ Controlla la password
     const match = await bcrypt.compare(password, user.password_hash);
-
     if (!match) {
       return res.status(401).json({ error: 'Credenziali non valide' });
     }
 
+    // ✅ Aggiungi anche il ruolo al token
     const token = jwt.sign(
-      { username: user.username, division: user.division },
+      {
+        username: user.username,
+        division: user.division,
+        role: user.role, // 👈 qui aggiungi il campo role
+      },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
@@ -41,6 +46,7 @@ router.post('/login', async (req, res) => {
       user: {
         username: user.username,
         division: user.division,
+        role: user.role, // 👈 e anche qui nella risposta
       },
     });
   } catch (err) {
@@ -50,4 +56,5 @@ router.post('/login', async (req, res) => {
 });
 
 module.exports = router;
+
 
