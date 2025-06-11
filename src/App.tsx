@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import TicketList from './pages/TicketList';
 import Header from './components/Header'; // già esistente
 import PrivateRoute from './components/PrivateRoute';
+import UserRegister from './pages/UserRegister';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<UserRegister />} />
           <Route
             path="/ticket"
             element={

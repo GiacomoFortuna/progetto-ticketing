@@ -67,6 +67,14 @@ function Header() {
                 </Link>
               </li>
             )}
+            {/* Mostra il link Registra utente solo ai manager */}
+            {user?.role === 'manager' && (
+              <li>
+                <Link to="/register" className="text-sm font-medium text-blue-600 hover:underline">
+                  Registra utente
+                </Link>
+              </li>
+            )}
             {/* Mostra il pulsante Logout solo se l'utente è autenticato */}
             {user && (
               <li>

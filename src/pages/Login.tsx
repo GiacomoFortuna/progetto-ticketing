@@ -15,23 +15,22 @@ function Login() {
 
     try {
       const response = await fetch('http://localhost:3001/api/auth/login', {
-        // ✅ URL aggiornata per il login
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Errore di login');
       }
 
-      const { token, user } = await response.json();
+      const { token, user } = data;
 
-      // ✅ Salviamo token in localStorage
+      // ✅ Salva tutto correttamente nel localStorage
       localStorage.setItem('token', token);
-
-      // ✅ Salviamo i dati utente nel context
+      localStorage.setItem('user', JSON.stringify(user)); // deve contenere anche user.role
       login(user, token);
 
       navigate('/ticket');
@@ -41,16 +40,18 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-sm">
+    <div className="fixed inset-0 flex items-center justify-center bg-gray-50">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-sm" autoComplete="off">
         <h2 className="text-xl font-semibold mb-4">Login</h2>
-        {error && <p className="text-red-500">{error}</p>}
+        {error && <p className="text-red-500 mb-3">{error}</p>}
         <input
           type="text"
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           className="w-full mb-3 p-2 border rounded"
+          required
+          autoComplete="new-username"
         />
         <input
           type="password"
@@ -58,8 +59,10 @@ function Login() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full mb-4 p-2 border rounded"
+          required
+          autoComplete="new-password"
         />
-        <button type="submit" className="w-full bg-green-600 text-white py-2 rounded">
+        <button type="submit" className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition">
           Accedi
         </button>
       </form>
@@ -69,4 +72,4 @@ function Login() {
 
 export default Login;
 // This code defines a Login component for a React application.
-// It handles user authentication by submitting a login form to a backend API.
+// It allows users to log in by entering their username and password.

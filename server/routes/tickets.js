@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const authMiddleware = require('../middleware/authMiddleware');
+const { Parser } = require('json2csv'); // 👉 libreria per convertire JSON in CSV
 
 // Function to calculate working hours between two dates
 function calcolaOreLavorative(startDate, endDate) {
@@ -198,6 +199,60 @@ router.get('/projects', async (req, res) => {
   } catch (err) {
     console.error('Errore progetti:', err);
     res.status(500).json({ error: 'Errore nel recupero dei progetti' });
+  }
+});
+
+// Sostituisci la vecchia rotta export con questa versione che supporta il filtro division
+router.get('/export', authMiddleware, async (req, res) => {
+  const { division } = req.query;
+  try {
+    let query = `
+      SELECT 
+        t.id, t.title, t.description, t.division, t.assigned_to, t.status, 
+        t.created_by, t.created_at, t.working_hours,
+        p.name AS project_name,
+        i.name AS infrastructure_name,
+        c.name AS client_name
+      FROM tickets t
+      LEFT JOIN projects p ON t.project_id = p.id
+      LEFT JOIN infrastructures i ON p.infrastructure_id = i.id
+      LEFT JOIN clients c ON i.client_id = c.id
+    `;
+
+    const values = [];
+
+    if (division) {
+      query += ' WHERE t.division = $1';
+      values.push(division);
+    }
+
+    query += ' ORDER BY t.created_at DESC';
+
+    const result = await db.query(query, values);
+
+    const fields = [
+      'id',
+      'title',
+      'description',
+      'division',
+      'assigned_to',
+      'status',
+      'created_by',
+      'created_at',
+      'working_hours',
+      'project_name',
+      'infrastructure_name',
+      'client_name',
+    ];
+    const parser = new Parser({ fields });
+    const csv = parser.parse(result.rows);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment(`tickets_${division || 'tutti'}.csv`);
+    res.send(csv);
+  } catch (err) {
+    console.error('Errore CSV export:', err);
+    res.status(500).json({ error: 'Errore nel download del CSV' });
   }
 });
 

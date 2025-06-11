@@ -54,4 +54,23 @@ export async function updateTicketStatus(id: number, status: string): Promise<vo
   }
 }
 
+export async function registerUser(userData: {
+  username: string;
+  password: string;
+  division: string;
+  role: string;
+}) {
+  const res = await fetch('http://localhost:3001/api/users/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: JSON.stringify(userData),
+  });
+
+  if (!res.ok) throw new Error('Errore nella registrazione utente');
+  return res.json();
+}
+
 

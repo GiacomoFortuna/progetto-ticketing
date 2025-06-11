@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createTicket, updateTicketStatus } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 type Ticket = {
   id: number;
@@ -18,15 +19,11 @@ type Ticket = {
   working_hours?: number;
 };
 
-const user = (() => {
-  try {
-    return JSON.parse(localStorage.getItem('user') || 'null');
-  } catch {
-    return null;
-  }
-})();
+
 
 function TicketList() {
+  const { user } = useAuth();
+  const { token } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,28 +55,31 @@ function TicketList() {
   };
 
   const fetchTickets = async (search: string = '') => {
-    const token = localStorage.getItem('token');
-    let url = 'http://localhost:3001/api/tickets';
-    const params: string[] = [];
-    if (filterDivision) params.push(`division=${encodeURIComponent(filterDivision)}`);
-    if (search) params.push(`search=${encodeURIComponent(search)}`);
-    if (params.length > 0) url += `?${params.join('&')}`;
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (!res.ok) {
-      setError('Errore nel recupero dei ticket');
-      setTickets([]);
-      setLoading(false);
-      return [];
-    }
-    const data = await res.json();
-    setTickets(data);
+  let url = 'http://localhost:3001/api/tickets';
+  const params: string[] = [];
+  if (filterDivision) params.push(`division=${encodeURIComponent(filterDivision)}`);
+  if (search) params.push(`search=${encodeURIComponent(search)}`);
+  if (params.length > 0) url += `?${params.join('&')}`;
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    setError('Errore nel recupero dei ticket');
+    setTickets([]);
     setLoading(false);
-    return data;
-  };
+    return [];
+  }
+
+  const data = await res.json();
+  setTickets(data);
+  setLoading(false);
+  return data;
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +97,33 @@ function TicketList() {
       setShowModal(false);
     } catch (err) {
       alert('Errore nel salvataggio ticket');
+    }
+  };
+
+  // Funzione per scaricare il CSV (solo manager) con filtro divisione
+  const downloadCSV = async () => {
+    const token = localStorage.getItem('token');
+    let url = 'http://localhost:3001/api/tickets/export';
+
+    if (filterDivision) {
+      url += `?division=${encodeURIComponent(filterDivision)}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `tickets_${filterDivision || 'tutti'}.csv`;
+      link.click();
+    } catch (err) {
+      console.error('Errore nel download CSV:', err);
+      alert('Errore nel download del CSV');
     }
   };
 
@@ -132,12 +159,22 @@ function TicketList() {
     <div className="max-w-4xl mx-auto mt-20 p-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <h1 className="text-2xl font-bold mb-4 md:mb-0">Ticket in gestione</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-        >
-          Nuovo Ticket
-        </button>
+        <div className="flex items-center">
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+          >
+            Nuovo Ticket
+          </button>
+          {user?.role === 'manager' && (
+            <button
+              onClick={downloadCSV}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition ml-2"
+            >
+              Esporta CSV
+            </button>
+          )}
+        </div>
       </div>
 
       {/* SEARCH BAR */}
@@ -150,38 +187,39 @@ function TicketList() {
       />
 
       {/* FILTRI: Divisione (solo manager) e Stato, uno di fianco all'altro */}
-      <div className="flex flex-col md:flex-row md:gap-4 mb-4">
- {(user?.role === 'manager' || user?.role === 'admin') && (
-  <div className="w-full md:w-1/2">
-    <label className="block mb-1 font-medium">Filtra per divisione:</label>
+<div className="flex flex-col md:flex-row md:gap-4 mb-4">
+  {user?.role === 'manager' && (
+    <div className="w-full md:w-1/2">
+      <label className="block mb-1 font-medium">Filtra per divisione:</label>
+      <select
+        value={filterDivision}
+        onChange={(e) => setFilterDivision(e.target.value)}
+        className="border px-3 py-2 rounded w-full"
+      >
+        <option value="">Tutte</option>
+        <option value="cloud">Cloud</option>
+        <option value="networking">Networking</option>
+        <option value="it-care">IT-Care</option>
+      </select>
+    </div>
+  )}
+
+  <div className={`w-full ${user?.role === 'manager' ? 'md:w-1/2' : ''}`}>
+    <label className="block mb-1 font-medium text-gray-700">Filtra per stato:</label>
     <select
-      value={filterDivision}
-      onChange={(e) => setFilterDivision(e.target.value)}
+      value={filterStatus}
+      onChange={(e) => setFilterStatus(e.target.value)}
       className="border px-3 py-2 rounded w-full"
     >
-      <option value="">Tutte</option>
-      <option value="cloud">Cloud</option>
-      <option value="networking">Networking</option>
-      <option value="it-care">IT-Care</option>
+      <option value="all">Tutti</option>
+      <option value="open">Aperti</option>
+      <option value="in-progress">In lavorazione</option>
+      <option value="paused">In pausa</option>
+      <option value="closed">Chiusi</option>
     </select>
   </div>
-)}
+</div>
 
-        <div className={`w-full ${user?.role === 'manager' ? 'md:w-1/2' : ''}`}>
-          <label className="block mb-1 font-medium text-gray-700">Filtra per stato:</label>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="border px-3 py-2 rounded w-full"
-          >
-            <option value="all">Tutti</option>
-            <option value="open">Aperti</option>
-            <option value="in-progress">In lavorazione</option>
-            <option value="paused">In pausa</option>
-            <option value="closed">Chiusi</option>
-          </select>
-        </div>
-      </div>
 
       {/* Modale per la creazione del ticket */}
       {showModal && (
