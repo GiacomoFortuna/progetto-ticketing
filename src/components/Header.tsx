@@ -1,12 +1,15 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import logo from '../assets/logo-planetel.svg';
 import { useAuth } from '../context/AuthContext';
+import UserSettingsPopup from '../pages/UserSettingPopup';
 
 // Componente Header che rappresenta l'intestazione dell'applicazione
 function Header() {
   const location = useLocation(); // Hook per ottenere il percorso attuale
   const navigate = useNavigate(); // Hook per navigare tra le pagine
   const { user, logout } = useAuth(); // Recupera lo stato di autenticazione e la funzione di logout
+  const [showPopup, setShowPopup] = useState(false);
 
   // Funzione per verificare se il percorso è attivo
   const isActive = (path: string) => location.pathname === path;
@@ -75,6 +78,17 @@ function Header() {
                 </Link>
               </li>
             )}
+            {/* Mostra il bottone Modifica password se autenticato */}
+            {user && (
+              <li>
+                <button
+                  onClick={() => setShowPopup(true)}
+                  className="text-sm text-blue-700 underline"
+                >
+                  Modifica password
+                </button>
+              </li>
+            )}
             {/* Mostra il pulsante Logout solo se l'utente è autenticato */}
             {user && (
               <li>
@@ -89,6 +103,8 @@ function Header() {
           </ul>
         </nav>
       </div>
+      {/* Popup per modifica password */}
+      {showPopup && <UserSettingsPopup onClose={() => setShowPopup(false)} />}
     </header>
   );
 }
