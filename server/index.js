@@ -16,7 +16,7 @@ app.use(express.json());
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', UserRoutes);
-
+app.use('/uploads', express.static('uploads'));
 app.get('/', (req, res) => {
   res.send('Server backend attivo! ✅');
 });

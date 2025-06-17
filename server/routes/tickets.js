@@ -3,6 +3,39 @@ const router = express.Router();
 const db = require('../db');
 const authMiddleware = require('../middleware/authMiddleware');
 const { Parser } = require('json2csv'); // 👉 libreria per convertire JSON in CSV
+const sharp = require('sharp');
+
+// --- INIZIO INTEGRAZIONE UPLOAD ---
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Estensioni accettate
+const allowedExtensions = /\.(pdf|doc|docx|jpg|jpeg|png)$/i;
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+  },
+});
+
+// 👉 Niente limite fisico globale
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allowedExtensions.test(ext)) {
+      return cb(new Error('Formato file non valido. Sono ammessi: PDF, DOC, DOCX, JPG, PNG'));
+    }
+    cb(null, true);
+  }
+});
+// --- FINE INTEGRAZIONE UPLOAD ---
 
 // Function to calculate working hours between two dates
 function calcolaOreLavorative(startDate, endDate) {
@@ -43,6 +76,7 @@ router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
       t.created_at,
       t.working_hours,
       t.created_by,
+      t.attachment,
       p.name AS project_name,
       i.name AS infrastructure_name,
       c.name AS client_name
@@ -83,24 +117,54 @@ router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
   }
 });
 
-// POST /api/tickets
-router.post('/', authMiddleware, async (req, res) => {
-const { title, description, client_id, project_id, assigned_to, division } = req.body;
-const created_by = req.user.username;
+// CREA nuovo ticket (con allegato, resize immagini e controllo dimensione documenti)
+router.post('/', authMiddleware, upload.single('attachment'), async (req, res) => {
+  const { title, description, division, client_id, project_id, assigned_to } = req.body;
+  const created_by = req.user.username;
+  let attachment = req.file ? req.file.filename : null;
 
   try {
+    if (req.file) {
+      const isImage = /\.(jpg|jpeg|png)$/i.test(req.file.originalname);
+      const isDoc = /\.(pdf|doc|docx)$/i.test(req.file.originalname);
+
+      // ✅ Se è immagine → ridimensiona
+      if (isImage) {
+        const inputPath = `uploads/${req.file.filename}`;
+        const outputPath = `uploads/resized-${req.file.filename}`;
+        await sharp(inputPath)
+          .resize({ width: 1920, height: 1080, fit: 'inside' })
+          .toFile(outputPath);
+
+        // Elimina originale e salva il nome nuovo
+        fs.unlinkSync(inputPath);
+        attachment = `resized-${req.file.filename}`;
+      }
+
+      // 🚫 Se è documento > 8MB → rifiuta
+      if (isDoc && req.file.size > 8 * 1024 * 1024) {
+        fs.unlinkSync(req.file.path); // cancella il file
+        return res.status(400).json({ error: 'I documenti possono pesare massimo 8MB' });
+      }
+    }
+
     const result = await db.query(
-      `INSERT INTO tickets (title, description, division, client_id, project_id, assigned_to, status, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, 'open', $7) RETURNING *`,
-      [title, description, division, client_id, project_id, assigned_to, created_by]
+      `INSERT INTO tickets 
+      (title, description, division, client_id, project_id, assigned_to, created_by, attachment)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *`,
+      [title, description, division, client_id, project_id, assigned_to || null, created_by, attachment]
     );
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Errore nella creazione del ticket:', err);
-    res.status(500).json({ error: 'Errore nella creazione del ticket' });
+    console.error('Errore creazione ticket:', err);
+    res.status(500).json({ error: 'Errore interno' });
   }
 });
+
+// ROTTA STATIC PER I FILE
+router.use('/files', express.static('uploads'));
 
 // PUT /api/tickets/:id → aggiorna un ticket esistente
 router.patch('/:id', authMiddleware, async (req, res) => {

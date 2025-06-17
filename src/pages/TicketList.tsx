@@ -1,7 +1,9 @@
+// Import dei moduli React e delle funzioni di servizio
 import { useEffect, useState } from 'react';
 import { createTicket, updateTicketStatus } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+// Definizione del tipo Ticket per tipizzare i dati dei ticket
 type Ticket = {
   id: number;
   title: string;
@@ -17,13 +19,15 @@ type Ticket = {
   created_at: string;
   created_by: string;
   working_hours?: number;
+  attachment?: string; // aggiungi il campo attachment
 };
 
-
-
+// Componente principale per la gestione dei ticket
 function TicketList() {
-  const { user } = useAuth();
-  const { token } = useAuth();
+  // Recupera l'utente e il token dal context di autenticazione
+  const { user, token } = useAuth();
+
+  // Stati per la gestione dei dati e dei filtri
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +41,7 @@ function TicketList() {
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Stato per il nuovo ticket da creare
   const [newTicket, setNewTicket] = useState({
     title: '',
     description: '',
@@ -46,46 +51,77 @@ function TicketList() {
     assigned_to: '',
   });
 
+  // Stato per mostrare/nascondere la modale di creazione ticket
   const [showModal, setShowModal] = useState(false);
+  const [attachment, setAttachment] = useState<File | null>(null);
 
+  // Gestisce il cambiamento dei campi del form di creazione ticket
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     setNewTicket({ ...newTicket, [e.target.name]: e.target.value });
   };
 
+  // Recupera i ticket dal backend, applicando eventuali filtri
   const fetchTickets = async (search: string = '') => {
-  let url = 'http://localhost:3001/api/tickets';
-  const params: string[] = [];
-  if (filterDivision) params.push(`division=${encodeURIComponent(filterDivision)}`);
-  if (search) params.push(`search=${encodeURIComponent(search)}`);
-  if (params.length > 0) url += `?${params.join('&')}`;
+    let url = 'http://localhost:3001/api/tickets';
+    const params: string[] = [];
+    if (filterDivision) params.push(`division=${encodeURIComponent(filterDivision)}`);
+    if (search) params.push(`search=${encodeURIComponent(search)}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
 
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-  if (!res.ok) {
-    setError('Errore nel recupero dei ticket');
-    setTickets([]);
+    if (!res.ok) {
+      setError('Errore nel recupero dei ticket');
+      setTickets([]);
+      setLoading(false);
+      return [];
+    }
+
+    const data = await res.json();
+    setTickets(data);
     setLoading(false);
-    return [];
-  }
+    return data;
+  };
 
-  const data = await res.json();
-  setTickets(data);
-  setLoading(false);
-  return data;
-};
-
-
+  // Modifica handleSubmit per usare FormData e supportare l'allegato
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const formData = new FormData();
+    formData.append('title', newTicket.title);
+    formData.append('description', newTicket.description);
+    formData.append('division', newTicket.division);
+    // Modifica: usa client_id invece di client
+    formData.append('client_id', newTicket.client);
+    formData.append('project_id', newTicket.project_id);
+    if (newTicket.assigned_to) {
+      formData.append('assigned_to', newTicket.assigned_to);
+    }
+    if (attachment) {
+      formData.append('attachment', attachment);
+    }
+
     try {
-      await createTicket(newTicket);
-      await fetchTickets(searchTerm);
+      const res = await fetch('http://localhost:3001/api/tickets', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Errore nella creazione del ticket');
+      }
+
+      const createdTicket = await res.json();
+      setAttachment(null);
       setNewTicket({
         title: '',
         description: '',
@@ -95,12 +131,14 @@ function TicketList() {
         assigned_to: '',
       });
       setShowModal(false);
+      await fetchTickets(searchTerm);
     } catch (err) {
+      console.error(err);
       alert('Errore nel salvataggio ticket');
     }
   };
 
-  // Funzione per scaricare il CSV (solo manager) con filtro divisione
+  // Funzione per scaricare il CSV dei ticket (solo per manager), applicando il filtro divisione
   const downloadCSV = async () => {
     const token = localStorage.getItem('token');
     let url = 'http://localhost:3001/api/tickets/export';
@@ -127,11 +165,13 @@ function TicketList() {
     }
   };
 
+  // Effetto per caricare i ticket ogni volta che cambiano i filtri
   useEffect(() => {
     fetchTickets(searchTerm);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterDivision, searchTerm]);
 
+  // Effetto per caricare la lista dei clienti all'avvio
   useEffect(() => {
     fetch('http://localhost:3001/api/tickets/clients')
       .then((res) => res.json())
@@ -139,6 +179,7 @@ function TicketList() {
       .catch(() => alert('Errore nel caricamento clienti'));
   }, []);
 
+  // Effetto per caricare le infrastrutture quando cambia il cliente selezionato
   useEffect(() => {
     if (!selectedClient) return;
     fetch(`http://localhost:3001/api/tickets/infrastructures?client_id=${selectedClient}`)
@@ -147,6 +188,7 @@ function TicketList() {
       .catch(() => alert('Errore nel caricamento infrastrutture'));
   }, [selectedClient]);
 
+  // Effetto per caricare i progetti quando cambia l'infrastruttura selezionata
   useEffect(() => {
     if (!selectedInfrastructure) return;
     fetch(`http://localhost:3001/api/tickets/projects?infrastructure_id=${selectedInfrastructure}`)
@@ -157,15 +199,18 @@ function TicketList() {
 
   return (
     <div className="max-w-4xl mx-auto mt-20 p-4">
+      {/* Header con titolo e pulsanti */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <h1 className="text-2xl font-bold mb-4 md:mb-0">Ticket in gestione</h1>
         <div className="flex items-center">
+          {/* Pulsante per aprire la modale di creazione ticket */}
           <button
             onClick={() => setShowModal(true)}
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
           >
             Nuovo Ticket
           </button>
+          {/* Pulsante per esportare i ticket in CSV, visibile solo ai manager */}
           {user?.role === 'manager' && (
             <button
               onClick={downloadCSV}
@@ -177,7 +222,7 @@ function TicketList() {
         </div>
       </div>
 
-      {/* SEARCH BAR */}
+      {/* Barra di ricerca */}
       <input
         type="text"
         value={searchTerm}
@@ -186,40 +231,39 @@ function TicketList() {
         className="border px-3 py-2 rounded w-full mb-4"
       />
 
-      {/* FILTRI: Divisione (solo manager) e Stato, uno di fianco all'altro */}
-<div className="flex flex-col md:flex-row md:gap-4 mb-4">
-  {user?.role === 'manager' && (
-    <div className="w-full md:w-1/2">
-      <label className="block mb-1 font-medium">Filtra per divisione:</label>
-      <select
-        value={filterDivision}
-        onChange={(e) => setFilterDivision(e.target.value)}
-        className="border px-3 py-2 rounded w-full"
-      >
-        <option value="">Tutte</option>
-        <option value="cloud">Cloud</option>
-        <option value="networking">Networking</option>
-        <option value="it-care">IT-Care</option>
-      </select>
-    </div>
-  )}
+      {/* Filtri: divisione (solo per manager) e stato, affiancati */}
+      <div className="flex flex-col md:flex-row md:gap-4 mb-4">
+        {user?.role === 'manager' && (
+          <div className="w-full md:w-1/2">
+            <label className="block mb-1 font-medium">Filtra per divisione:</label>
+            <select
+              value={filterDivision}
+              onChange={(e) => setFilterDivision(e.target.value)}
+              className="border px-3 py-2 rounded w-full"
+            >
+              <option value="">Tutte</option>
+              <option value="cloud">Cloud</option>
+              <option value="networking">Networking</option>
+              <option value="it-care">IT-Care</option>
+            </select>
+          </div>
+        )}
 
-  <div className={`w-full ${user?.role === 'manager' ? 'md:w-1/2' : ''}`}>
-    <label className="block mb-1 font-medium text-gray-700">Filtra per stato:</label>
-    <select
-      value={filterStatus}
-      onChange={(e) => setFilterStatus(e.target.value)}
-      className="border px-3 py-2 rounded w-full"
-    >
-      <option value="all">Tutti</option>
-      <option value="open">Aperti</option>
-      <option value="in-progress">In lavorazione</option>
-      <option value="paused">In pausa</option>
-      <option value="closed">Chiusi</option>
-    </select>
-  </div>
-</div>
-
+        <div className={`w-full ${user?.role === 'manager' ? 'md:w-1/2' : ''}`}>
+          <label className="block mb-1 font-medium text-gray-700">Filtra per stato:</label>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="border px-3 py-2 rounded w-full"
+          >
+            <option value="all">Tutti</option>
+            <option value="open">Aperti</option>
+            <option value="in-progress">In lavorazione</option>
+            <option value="paused">In pausa</option>
+            <option value="closed">Chiusi</option>
+          </select>
+        </div>
+      </div>
 
       {/* Modale per la creazione del ticket */}
       {showModal && (
@@ -233,6 +277,7 @@ function TicketList() {
             </button>
             <h2 className="text-xl font-bold mb-4">Crea nuovo ticket</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Input titolo */}
               <input
                 name="title"
                 value={newTicket.title}
@@ -241,6 +286,7 @@ function TicketList() {
                 required
                 className="w-full border p-2 rounded"
               />
+              {/* Input descrizione */}
               <textarea
                 name="description"
                 value={newTicket.description}
@@ -249,8 +295,7 @@ function TicketList() {
                 required
                 className="w-full border p-2 rounded"
               />
-
-              {/* CLIENTE */}
+              {/* Select cliente */}
               <select
                 required
                 value={selectedClient}
@@ -271,8 +316,7 @@ function TicketList() {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-
-              {/* INFRASTRUTTURA */}
+              {/* Select infrastruttura */}
               {infrastructures.length > 0 && (
                 <select
                   required
@@ -292,8 +336,7 @@ function TicketList() {
                   ))}
                 </select>
               )}
-
-              {/* PROGETTO */}
+              {/* Select progetto */}
               {projects.length > 0 && (
                 <select
                   required
@@ -307,8 +350,7 @@ function TicketList() {
                   ))}
                 </select>
               )}
-
-              {/* DIVISIONE */}
+              {/* Select divisione */}
               <select
                 name="division"
                 value={newTicket.division}
@@ -338,7 +380,7 @@ function TicketList() {
                 <option value="networking">Networking</option>
                 <option value="it-care">IT-Care</option>
               </select>
-              {/* ASSEGNATO A */}
+              {/* Select assegnato a */}
               <select
                 name="assigned_to"
                 value={newTicket.assigned_to}
@@ -352,6 +394,17 @@ function TicketList() {
                   </option>
                 ))}
               </select>
+              {/* Input per allegato */}
+              <input
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setAttachment(file);
+                }}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" // <-- aggiungi qui le estensioni immagini
+                className="w-full mb-3 p-2 border rounded"
+              />
+              {/* Pulsante per creare il ticket */}
               <button
                 type="submit"
                 className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition"
@@ -363,7 +416,7 @@ function TicketList() {
         </div>
       )}
 
-      {/* LISTA */}
+      {/* Lista dei ticket */}
       {loading ? (
         <p>Caricamento...</p>
       ) : error ? (
@@ -404,12 +457,14 @@ function TicketList() {
                     : `Divisione ${ticket.division}`}
                 </p>
 
+                {/* Mostra le ore lavorate solo se il ticket è chiuso */}
                 {ticket.status === 'closed' && ticket.working_hours !== null && (
                   <p className="text-sm text-gray-500 mt-1">
                     Tempo di lavorazione: {ticket.working_hours}h
                   </p>
                 )}
 
+                {/* Pulsanti per cambiare lo stato del ticket */}
                 {ticket.status !== 'closed' && (
                   <div className="mt-3 flex gap-2">
                     {ticket.status === 'open' && (
@@ -472,6 +527,22 @@ function TicketList() {
                     )}
                   </div>
                 )}
+                <p className="text-sm text-gray-600 mt-1">
+                  {/* Mostra link allegato se presente */}
+                  Allegato:{' '}
+                  {ticket.attachment ? (
+                    <a
+                      href={`http://localhost:3001/uploads/${ticket.attachment}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      Apri allegato
+                    </a>
+                  ) : (
+                    '—'
+                  )}
+                </p>
               </li>
             ))}
         </ul>
@@ -481,5 +552,6 @@ function TicketList() {
 }
 
 export default TicketList;
-// This code defines a TicketList component that fetches and displays a list of tickets.
-// It also includes a form to create new tickets, handling state and form submission.
+// Questo componente definisce la pagina principale per la gestione dei ticket.
+// Permette di visualizzare, filtrare, creare e cambiare lo stato dei ticket.
+// I manager possono anche esportare i ticket in formato CSV.

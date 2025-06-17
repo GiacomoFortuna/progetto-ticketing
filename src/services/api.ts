@@ -18,13 +18,19 @@ export async function getTickets() {
 
 // Crea un nuovo ticket nel backend
 export async function createTicket(data: any) {
+  // Modifica: se data è FormData (upload), non aggiungere Content-Type
+  const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
   const res = await fetch(`${API_URL}/tickets`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getToken()}`,
+      ...(isFormData
+        ? { Authorization: `Bearer ${getToken()}` }
+        : {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getToken()}`,
+          }),
     },
-    body: JSON.stringify(data),
+    body: isFormData ? data : JSON.stringify(data),
   });
 
   if (!res.ok) throw new Error('Errore nella creazione del ticket');
