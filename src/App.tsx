@@ -5,6 +5,7 @@ import TicketList from './pages/TicketList';
 import Header from './components/Header'; // già esistente
 import PrivateRoute from './components/PrivateRoute';
 import UserRegister from './pages/UserRegister';
+import ClientLogin from './pages/ClientLogin';
 
 function App() {
   return (
@@ -23,6 +24,8 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route path="/client-login" element={<ClientLogin />} />
+          {/* Puoi aggiungere qui altre rotte client, es: <Route path="/client-dashboard" element={<ClientDashboard />} /> */}
         </Routes>
       </main>
     </>

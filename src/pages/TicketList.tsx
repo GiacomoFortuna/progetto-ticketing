@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { createTicket, updateTicketStatus } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import TicketModal from './TicketModal';
 
 // Definizione del tipo Ticket per tipizzare i dati dei ticket
 type Ticket = {
@@ -19,15 +20,12 @@ type Ticket = {
   created_at: string;
   created_by: string;
   working_hours?: number;
-  attachment?: string; // aggiungi il campo attachment
+  attachment?: string;
 };
 
-// Componente principale per la gestione dei ticket
 function TicketList() {
-  // Recupera l'utente e il token dal context di autenticazione
   const { user, token } = useAuth();
 
-  // Stati per la gestione dei dati e dei filtri
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +39,6 @@ function TicketList() {
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Stato per il nuovo ticket da creare
   const [newTicket, setNewTicket] = useState({
     title: '',
     description: '',
@@ -51,9 +48,9 @@ function TicketList() {
     assigned_to: '',
   });
 
-  // Stato per mostrare/nascondere la modale di creazione ticket
   const [showModal, setShowModal] = useState(false);
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
   // Gestisce il cambiamento dei campi del form di creazione ticket
   const handleChange = (
@@ -70,23 +67,33 @@ function TicketList() {
     if (search) params.push(`search=${encodeURIComponent(search)}`);
     if (params.length > 0) url += `?${params.join('&')}`;
 
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    setLoading(true);
+    setError(null);
 
-    if (!res.ok) {
-      setError('Errore nel recupero dei ticket');
+    try {
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        setError('Errore nel recupero dei ticket');
+        setTickets([]);
+        setLoading(false);
+        return [];
+      }
+
+      const data = await res.json();
+      setTickets(data);
+      setLoading(false);
+      return data;
+    } catch (err) {
+      setError('Errore di rete');
       setTickets([]);
       setLoading(false);
       return [];
     }
-
-    const data = await res.json();
-    setTickets(data);
-    setLoading(false);
-    return data;
   };
 
   // Modifica handleSubmit per usare FormData e supportare l'allegato
@@ -97,9 +104,9 @@ function TicketList() {
     formData.append('title', newTicket.title);
     formData.append('description', newTicket.description);
     formData.append('division', newTicket.division);
-    // Modifica: usa client_id invece di client
-    formData.append('client_id', newTicket.client);
-    formData.append('project_id', newTicket.project_id);
+    // Usa client_id invece di client, passa stringa vuota come null
+    formData.append('client_id', newTicket.client || '');
+    formData.append('project_id', newTicket.project_id || '');
     if (newTicket.assigned_to) {
       formData.append('assigned_to', newTicket.assigned_to);
     }
@@ -120,7 +127,7 @@ function TicketList() {
         throw new Error('Errore nella creazione del ticket');
       }
 
-      const createdTicket = await res.json();
+      await res.json();
       setAttachment(null);
       setNewTicket({
         title: '',
@@ -165,13 +172,11 @@ function TicketList() {
     }
   };
 
-  // Effetto per caricare i ticket ogni volta che cambiano i filtri
   useEffect(() => {
     fetchTickets(searchTerm);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterDivision, searchTerm]);
 
-  // Effetto per caricare la lista dei clienti all'avvio
   useEffect(() => {
     fetch('http://localhost:3001/api/tickets/clients')
       .then((res) => res.json())
@@ -179,7 +184,6 @@ function TicketList() {
       .catch(() => alert('Errore nel caricamento clienti'));
   }, []);
 
-  // Effetto per caricare le infrastrutture quando cambia il cliente selezionato
   useEffect(() => {
     if (!selectedClient) return;
     fetch(`http://localhost:3001/api/tickets/infrastructures?client_id=${selectedClient}`)
@@ -188,7 +192,6 @@ function TicketList() {
       .catch(() => alert('Errore nel caricamento infrastrutture'));
   }, [selectedClient]);
 
-  // Effetto per caricare i progetti quando cambia l'infrastruttura selezionata
   useEffect(() => {
     if (!selectedInfrastructure) return;
     fetch(`http://localhost:3001/api/tickets/projects?infrastructure_id=${selectedInfrastructure}`)
@@ -422,130 +425,43 @@ function TicketList() {
       ) : error ? (
         <p className="text-red-600">Errore: {error}</p>
       ) : (
-        <ul className="space-y-4">
-          {tickets
-            .filter((ticket) => filterStatus === 'all' || ticket.status === filterStatus)
-            .map((ticket) => (
-              <li key={ticket.id} className="bg-white p-4 rounded shadow">
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="font-semibold text-lg">{ticket.title}</h2>
-                  <span
-                    className={`text-sm font-medium px-2 py-1 rounded-full
-                      ${ticket.status === 'open' ? 'bg-green-100 text-green-700' : ''}
-                      ${ticket.status === 'in-progress' ? 'bg-blue-100 text-blue-700' : ''}
-                      ${ticket.status === 'closed' ? 'bg-gray-200 text-gray-700' : ''}
-                      ${ticket.status === 'paused' ? 'bg-yellow-100 text-yellow-700' : ''}`}
-                  >
-                    {ticket.status}
-                  </span>
-                </div>
-
-                <p className="text-gray-700">{ticket.description}</p>
-                <p className="text-sm text-gray-500">
-                  Divisione: {ticket.division}
-                </p>
-                <p className="text-sm text-gray-500">
-                  Creato da: {ticket.created_by}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Cliente: {ticket.client_name} – Infrastruttura: {ticket.infrastructure_name} – Progetto: {ticket.project_name}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Assegnato a:{' '}
-                  {ticket.assigned_to
-                    ? ticket.assigned_to
-                    : `Divisione ${ticket.division}`}
-                </p>
-
-                {/* Mostra le ore lavorate solo se il ticket è chiuso */}
-                {ticket.status === 'closed' && ticket.working_hours !== null && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    Tempo di lavorazione: {ticket.working_hours}h
-                  </p>
-                )}
-
-                {/* Pulsanti per cambiare lo stato del ticket */}
-                {ticket.status !== 'closed' && (
-                  <div className="mt-3 flex gap-2">
-                    {ticket.status === 'open' && (
-                      <>
-                        <button
-                          onClick={async () => {
-                            await updateTicketStatus(ticket.id, 'in-progress');
-                            await fetchTickets(searchTerm);
-                          }}
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
-                        >
-                          Inizia
-                        </button>
-                        <button
-                          onClick={async () => {
-                            await updateTicketStatus(ticket.id, 'paused');
-                            await fetchTickets(searchTerm);
-                          }}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
-                        >
-                          Metti in pausa
-                        </button>
-                      </>
-                    )}
-
-                    {ticket.status === 'in-progress' && (
-                      <>
-                        <button
-                          onClick={async () => {
-                            await updateTicketStatus(ticket.id, 'paused');
-                            await fetchTickets(searchTerm);
-                          }}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
-                        >
-                          Pausa
-                        </button>
-
-                        <button
-                          onClick={async () => {
-                            await updateTicketStatus(ticket.id, 'closed');
-                            await fetchTickets(searchTerm);
-                          }}
-                          className="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1 rounded"
-                        >
-                          Chiudi
-                        </button>
-                      </>
-                    )}
-
-                    {ticket.status === 'paused' && (
-                      <button
-                        onClick={async () => {
-                          await updateTicketStatus(ticket.id, 'in-progress');
-                          await fetchTickets(searchTerm);
-                        }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
-                      >
-                        Riprendi
-                      </button>
-                    )}
-                  </div>
-                )}
-                <p className="text-sm text-gray-600 mt-1">
-                  {/* Mostra link allegato se presente */}
-                  Allegato:{' '}
-                  {ticket.attachment ? (
-                    <a
-                      href={`http://localhost:3001/uploads/${ticket.attachment}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline"
+        <div>
+          <ul className="space-y-4">
+            {tickets
+              .filter((ticket) => filterStatus === 'all' || ticket.status === filterStatus)
+              .map((ticket) => (
+                <li
+                  key={ticket.id}
+                  className="bg-white p-4 rounded shadow hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setSelectedTicket(ticket)}
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h2 className="font-semibold text-lg">{ticket.title}</h2>
+                    <span
+                      className={`text-sm font-medium px-2 py-1 rounded-full
+                        ${ticket.status === 'open' ? 'bg-green-100 text-green-700' : ''}
+                        ${ticket.status === 'in-progress' ? 'bg-blue-100 text-blue-700' : ''}
+                        ${ticket.status === 'closed' ? 'bg-gray-200 text-gray-700' : ''}
+                        ${ticket.status === 'paused' ? 'bg-yellow-100 text-yellow-700' : ''}`}
                     >
-                      Apri allegato
-                    </a>
-                  ) : (
-                    '—'
-                  )}
-                </p>
-              </li>
-            ))}
-        </ul>
+                      {ticket.status}
+                    </span>
+                  </div>
+
+                  <p className="text-gray-700">{ticket.description}</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                     Creato il: {new Date(ticket.created_at).toLocaleString()}
+                 </p>
+                  {/* ...other summary fields if needed... */}
+                </li>
+              ))}
+          </ul>
+          <TicketModal
+            isOpen={!!selectedTicket}
+            ticket={selectedTicket}
+            onClose={() => setSelectedTicket(null)}
+          />
+-        </div>
       )}
     </div>
   );

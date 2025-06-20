@@ -8,6 +8,7 @@ const app = express();
 const ticketRoutes = require('./routes/tickets');
 const authRoutes = require('./routes/auth');
 const UserRoutes = require('./routes/users');
+const clientAuthRoutes = require('./routes/clientAuth');
 
 // Middleware
 app.use(cors());
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', UserRoutes);
+app.use('/api/clientAuth', clientAuthRoutes);
 app.use('/uploads', express.static('uploads'));
 app.get('/', (req, res) => {
   res.send('Server backend attivo! ✅');

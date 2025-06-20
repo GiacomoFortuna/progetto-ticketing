@@ -148,12 +148,16 @@ router.post('/', authMiddleware, upload.single('attachment'), async (req, res) =
       }
     }
 
+    // Fix: se project_id o client_id sono stringa vuota, passa null (evita errore integer)
+    const projectIdValue = project_id === '' ? null : project_id;
+    const clientIdValue = client_id === '' ? null : client_id;
+
     const result = await db.query(
       `INSERT INTO tickets 
       (title, description, division, client_id, project_id, assigned_to, created_by, attachment)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *`,
-      [title, description, division, client_id, project_id, assigned_to || null, created_by, attachment]
+      [title, description, division, clientIdValue, projectIdValue, assigned_to || null, created_by, attachment]
     );
 
     res.status(201).json(result.rows[0]);

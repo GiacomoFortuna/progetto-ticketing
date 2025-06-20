@@ -70,6 +70,17 @@ function Header() {
                 </Link>
               </li>
             )}
+            {/* Link area clienti sempre visibile */}
+            <li>
+              <Link
+                to="/client-login"
+                className={`font-medium transition-all duration-200 transform hover:scale-110 ${
+                  isActive('/client-login') ? 'text-blue-600 font-bold' : 'text-gray-700 hover:text-blue-600'
+                }`}
+              >
+                Area Clienti
+              </Link>
+            </li>
             {/* Mostra il link Registra utente solo ai manager */}
             {user?.role === 'manager' && (
               <li>
