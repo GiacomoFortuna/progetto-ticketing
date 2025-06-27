@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useClientAuth } from '../context/ClientAuthContext'; // assicurati che sia importato
 
 const ClientLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  const { login } = useClientAuth(); // assicurati che sia usato
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +25,8 @@ const ClientLogin = () => {
       const data = await res.json();
       localStorage.setItem('client_token', data.token);
       localStorage.setItem('client_user', JSON.stringify(data.user));
-
-      navigate('/client-dashboard');
+      login(data.user, data.token); // 👈 fondamentale
+      navigate('/client-dashboard'); // 👈 reindirizza sempre dopo login OK
     } catch (err) {
       console.error(err);
       alert('Errore di rete');

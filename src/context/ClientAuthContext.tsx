@@ -1,39 +1,46 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
-const ClientAuthContext = createContext<any>(null);
+type ClientUser = {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+  client_id: number;
+  company_name: string;
+};
+
+type ClientAuthContextType = {
+  clientUser: ClientUser | null;
+  token: string | null;
+  login: (user: ClientUser, token: string) => void;
+  logout: () => void;
+};
+
+const ClientAuthContext = createContext<ClientAuthContextType | undefined>(undefined);
 
 export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [clientUser, setClientUser] = useState<any>(null);
+  const [clientUser, setClientUser] = useState<ClientUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('clientToken');
-    const savedUser = localStorage.getItem('clientUser');
-    if (saved && savedUser) {
-      setToken(saved);
+    const savedToken = localStorage.getItem('client_token');
+    const savedUser = localStorage.getItem('client_user');
+    if (savedToken && savedUser) {
+      setToken(savedToken);
       setClientUser(JSON.parse(savedUser));
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const res = await fetch('http://localhost:3001/api/client-auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!res.ok) throw new Error('Login fallito');
-
-    const data = await res.json();
-    localStorage.setItem('clientToken', data.token);
-    localStorage.setItem('clientUser', JSON.stringify(data.user));
-    setToken(data.token);
-    setClientUser(data.user);
+  const login = (user: ClientUser, token: string) => {
+    localStorage.setItem('client_token', token);
+    localStorage.setItem('client_user', JSON.stringify(user));
+    setToken(token);
+    setClientUser(user);
   };
 
   const logout = () => {
-    localStorage.removeItem('clientToken');
-    localStorage.removeItem('clientUser');
+    localStorage.removeItem('client_token');
+    localStorage.removeItem('client_user');
     setToken(null);
     setClientUser(null);
   };
@@ -45,4 +52,10 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
   );
 };
 
-export const useClientAuth = () => useContext(ClientAuthContext);
+export const useClientAuth = (): ClientAuthContextType => {
+  const context = useContext(ClientAuthContext);
+  if (!context) {
+    throw new Error('useClientAuth deve essere usato dentro ClientAuthProvider');
+  }
+  return context;
+};
