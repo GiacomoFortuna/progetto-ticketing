@@ -1,23 +1,24 @@
 import React from 'react';
 
-interface TicketModalProps {
+interface Ticket {
+  id: number;
+  title: string;
+  description: string;
+  status: string;
+  project_name?: string;
+  client_name?: string;
+  created_at: string;
+  started_at?: string;
+  closed_at?: string;
+  working_hours?: number;
+  attachment?: string;
+}
+
+interface Props {
   isOpen: boolean;
+  ticket: Ticket | null;
   onClose: () => void;
-  ticket: {
-    id: number;
-    title: string;
-    description: string;
-    status: string;
-    division: string;
-    client_name?: string;
-    infrastructure_name?: string;
-    project_name?: string;
-    assigned_to?: string;
-    created_at: string;
-    closed_at?: string;
-    working_hours?: number;
-    attachment?: string;
-  };
+  onStatusChange: (id: number, newStatus: string) => void;
 }
 
 const getStatusColor = (status: string) => {
@@ -35,97 +36,137 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, ticket }) => {
-  if (!isOpen) return null;
+const formatDate = (value?: string) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('it-IT', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date);
+};
+
+const TicketModal: React.FC<Props> = ({ isOpen, ticket, onClose, onStatusChange }) => {
+  if (!isOpen || !ticket) return null;
+
+  const canStart = ticket.status === 'open';
+  const canPause = ticket.status === 'in-progress';
+  const canClose = ticket.status === 'in-progress' || ticket.status === 'paused';
+  const canResume = ticket.status === 'paused';
+
+  const handleStatusChange = (newStatus: string) => {
+    if (ticket) {
+      onStatusChange(ticket.id, newStatus);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-0 relative flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-green-50 to-green-100">
-          <h2 className="text-2xl font-bold text-green-700 flex-1 truncate">{ticket.title}</h2>
-          <button
-            onClick={onClose}
-            className="ml-4 text-gray-400 hover:text-red-500 text-2xl font-bold transition"
-            aria-label="Chiudi"
-          >
-            &times;
-          </button>
+      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 relative">
+        {/* Bottone di chiusura */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-4 text-2xl text-gray-500 hover:text-red-500"
+        >
+          &times;
+        </button>
+
+        {/* Titolo e stato */}
+        <h2 className="text-2xl font-bold mb-4">{ticket.title}</h2>
+        <div
+          className={`inline-block px-3 py-1 rounded-full font-semibold text-sm mb-4 ${getStatusColor(ticket.status)}`}
+        >
+          {ticket.status}
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
-          {/* Stato e divisione */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <span className={`inline-block px-3 py-1 rounded-full font-semibold text-sm ${getStatusColor(ticket.status)}`}>
-              {ticket.status}
-            </span>
-            <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold text-sm">
-              {ticket.division}
-            </span>
-            {ticket.assigned_to && (
-              <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold text-sm">
-                Assegnato a: {ticket.assigned_to}
-              </span>
-            )}
-          </div>
-
-          {/* Descrizione */}
+        {/* Dettagli ticket */}
+        <div className="space-y-4">
           <div>
-            <label className="block font-semibold text-gray-700 mb-1">Descrizione</label>
-            <div className="bg-gray-50 border border-gray-200 rounded p-3 text-gray-800 whitespace-pre-line">
-              {ticket.description}
-            </div>
+            <label className="font-semibold">Descrizione:</label>
+            <p className="bg-gray-100 p-3 rounded whitespace-pre-line">{ticket.description}</p>
           </div>
 
-          {/* Info principali */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold text-gray-700">Cliente</label>
-              <div className="text-gray-900">{ticket.client_name || <span className="text-gray-400">—</span>}</div>
+              <label className="font-semibold">Cliente:</label>
+              <p>{ticket.client_name || '—'}</p>
             </div>
             <div>
-              <label className="block font-semibold text-gray-700">Infrastruttura</label>
-              <div className="text-gray-900">{ticket.infrastructure_name || <span className="text-gray-400">—</span>}</div>
+              <label className="font-semibold">Progetto:</label>
+              <p>{ticket.project_name || '—'}</p>
             </div>
             <div>
-              <label className="block font-semibold text-gray-700">Progetto</label>
-              <div className="text-gray-900">{ticket.project_name || <span className="text-gray-400">—</span>}</div>
+              <label className="font-semibold">Creato il:</label>
+              <p>{formatDate(ticket.created_at)}</p>
             </div>
             <div>
-              <label className="block font-semibold text-gray-700">Creato il</label>
-              <div className="text-gray-900">{new Date(ticket.created_at).toLocaleString()}</div>
+              <label className="font-semibold">Iniziato:</label>
+              <p>{formatDate(ticket.started_at)}</p>
             </div>
-            {ticket.closed_at && (
-              <div>
-                <label className="block font-semibold text-gray-700">Chiuso il</label>
-                <div className="text-gray-900">{new Date(ticket.closed_at).toLocaleString()}</div>
-              </div>
-            )}
-            {ticket.working_hours !== undefined && (
-              <div>
-                <label className="block font-semibold text-gray-700">Ore lavorate</label>
-                <div className="text-gray-900">{ticket.working_hours}</div>
-              </div>
-            )}
+            <div>
+              <label className="font-semibold">Chiuso il:</label>
+              <p>{formatDate(ticket.closed_at)}</p>
+            </div>
+            <div>
+              <label className="font-semibold">Ore lavorate:</label>
+              <p>
+                {ticket.working_hours != null && !isNaN(Number(ticket.working_hours))
+                  ? `${ticket.working_hours}h`
+                  : '—'}
+              </p>
+            </div>
           </div>
 
           {/* Allegato */}
-          <div>
-            <label className="block font-semibold text-gray-700 mb-1">Allegato</label>
-            {ticket.attachment ? (
-                <a
+          {ticket.attachment && (
+            <div>
+              <label className="font-semibold">Allegato:</label>
+              <a
                 href={`http://localhost:3001/api/tickets/files/${ticket.attachment}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block px-4 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700 transition"
-                >
+                className="text-blue-600 underline block mt-1"
+              >
                 Apri allegato
-                </a>
-            ) : (
-              <span className="text-gray-400">—</span>
-            )}
-          </div>
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* Azioni sullo stato del ticket */}
+        <div className="flex gap-2 mt-6 justify-end">
+          {canStart && (
+            <button
+              onClick={() => handleStatusChange('in-progress')}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Inizia
+            </button>
+          )}
+          {canPause && (
+            <button
+              onClick={() => handleStatusChange('paused')}
+              className="px-4 py-2 bg-yellow-400 text-white rounded hover:bg-yellow-500"
+            >
+              Metti in pausa
+            </button>
+          )}
+          {canClose && (
+            <button
+              onClick={() => handleStatusChange('closed')}
+              className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
+            >
+              Chiudi
+            </button>
+          )}
+          {canResume && (
+            <button
+              onClick={() => handleStatusChange('in-progress')}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Riprendi
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -133,3 +174,5 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, ticket }) =>
 };
 
 export default TicketModal;
+// Note: This component is used to display ticket details in a modal.
+// It includes functionality to change the ticket status and view attachments.

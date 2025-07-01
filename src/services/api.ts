@@ -38,13 +38,14 @@ export async function createTicket(data: any) {
 }
 
 // Aggiorna un ticket esistente nel backend
-export async function updateTicketStatus(id: number, status: string): Promise<void> {
+export async function updateTicketStatus(id: number, status: string, tokenOverride?: string): Promise<void> {
   try {
-    const response = await fetch(`${API_URL}/tickets/${id}`, {
+    // Usa la nuova rotta PATCH /api/tickets/:id/status
+    const response = await fetch(`${API_URL}/tickets/${id}/status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`,
+        'Authorization': `Bearer ${tokenOverride || getToken()}`,
       },
       body: JSON.stringify({ status }),
     });

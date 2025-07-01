@@ -3,6 +3,23 @@ const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Storage per file allegati
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/';
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + file.originalname;
+    cb(null, unique);
+  }
+});
+const upload = multer({ storage });
 
 // POST /api/clientAuth/login
 router.post('/login', async (req, res) => {
@@ -62,6 +79,67 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('Errore login client:', err);
     res.status(500).json({ error: 'Errore login client' });
+  }
+});
+
+// GET /api/clientAuth/client-projects/:client_id
+router.get('/client-projects/:client_id', async (req, res) => {
+  const { client_id } = req.params;
+
+  try {
+    const result = await db.query(
+      `SELECT projects.id, projects.name 
+       FROM projects
+       JOIN infrastructures ON projects.infrastructure_id = infrastructures.id
+       WHERE infrastructures.client_id = $1`,
+      [client_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Errore nel recupero progetti cliente:', err);
+    res.status(500).json({ error: 'Errore nel recupero progetti' });
+  }
+});
+
+// POST /api/clientAuth/client-tickets
+router.post('/client-tickets', upload.single('attachment'), async (req, res) => {
+  const { title, description, client_id, project_id } = req.body;
+  const filename = req.file ? req.file.filename : null;
+
+  try {
+    const result = await db.query(
+      `INSERT INTO tickets (title, description, division, status, created_at, project_id, client_id, attachment)
+       VALUES ($1, $2, $3, 'open', NOW(), $4, $5, $6)
+       RETURNING *`,
+      [title, description, 'it-care', project_id, client_id, filename]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Errore creazione ticket client:', err);
+    res.status(500).json({ error: 'Errore creazione ticket' });
+  }
+});
+
+// GET /api/client-tickets/:client_id
+router.get('/client-tickets/:client_id', async (req, res) => {
+  const { client_id } = req.params;
+
+  try {
+    const result = await db.query(
+      `SELECT 
+         tickets.*, 
+         projects.name AS project_name
+       FROM tickets
+       LEFT JOIN projects ON tickets.project_id = projects.id
+       WHERE tickets.client_id = $1
+       ORDER BY tickets.created_at DESC`,
+      [client_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Errore nel recupero dei ticket cliente:', err);
+    res.status(500).json({ error: 'Errore nel recupero dei ticket' });
   }
 });
 

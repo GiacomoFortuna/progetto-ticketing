@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useClientAuth } from '../context/ClientAuthContext';
 import ClientTicketModal from './ClientTicketModal';
-import NewClientTicketModal from './ClientTicketModal';
+import NewClientTicketModal from './NewClientTicketModal';
 
 type Ticket = {
   id: number;
@@ -23,7 +23,7 @@ const ClientDashboard = () => {
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/client-tickets/${clientUser?.client_id}`);
+        const res = await fetch(`http://localhost:3001/api/clientAuth/client-tickets/${clientUser?.client_id}`);
         if (!res.ok) throw new Error('Errore nel recupero dei ticket');
         const data = await res.json();
         setTickets(data);

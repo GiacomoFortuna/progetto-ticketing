@@ -8,7 +8,6 @@ const sharp = require('sharp');
 // --- INIZIO INTEGRAZIONE UPLOAD ---
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
 // Estensioni accettate
 const allowedExtensions = /\.(pdf|doc|docx|jpg|jpeg|png)$/i;
@@ -18,23 +17,11 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+    const uniqueSuffix = Date.now() + '-' + Math.floor(Math.random() * 1e5);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
-
-// 👉 Niente limite fisico globale
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (!allowedExtensions.test(ext)) {
-      return cb(new Error('Formato file non valido. Sono ammessi: PDF, DOC, DOCX, JPG, PNG'));
-    }
-    cb(null, true);
-  }
-});
+const upload = multer({ storage });
 // --- FINE INTEGRAZIONE UPLOAD ---
 
 // Function to calculate working hours between two dates
@@ -74,6 +61,8 @@ router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
       t.assigned_to,
       t.status,
       t.created_at,
+      t.started_at,
+      t.closed_at,
       t.working_hours,
       t.created_by,
       t.attachment,
@@ -219,6 +208,82 @@ router.patch('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// PATCH /api/tickets/:id/status
+router.patch('/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  let query = '';
+  let values = [];
+
+  try {
+    if (status === 'in-progress') {
+      // Imposta started_at solo se non è già impostato
+      query = `
+        UPDATE tickets
+        SET status = $1,
+            started_at = COALESCE(started_at, NOW())
+        WHERE id = $2
+        RETURNING *
+      `;
+      values = [status, id];
+    } else if (status === 'closed') {
+      query = `
+        UPDATE tickets
+        SET status = $1,
+            closed_at = NOW()
+        WHERE id = $2
+        RETURNING *
+      `;
+      values = [status, id];
+    } else {
+      // per 'open' o 'paused' o altri
+      query = `
+        UPDATE tickets
+        SET status = $1
+        WHERE id = $2
+        RETURNING *
+      `;
+      values = [status, id];
+    }
+
+    const result = await db.query(query, values);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Errore aggiornamento stato ticket:', err);
+    res.status(500).json({ error: 'Errore aggiornamento stato ticket' });
+  }
+});
+
+// PUT /api/tickets/:id/status
+router.put('/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    let updateFields = `status = $1`;
+    const values = [status];
+
+    if (status === 'in-progress') {
+      updateFields += `, started_at = NOW()`;
+    }
+
+    if (status === 'closed') {
+      updateFields += `, closed_at = NOW()`;
+    }
+
+    const result = await db.query(
+      `UPDATE tickets SET ${updateFields} WHERE id = $${values.length + 1} RETURNING *`,
+      [...values, id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Errore aggiornamento stato ticket:', err);
+    res.status(500).json({ error: 'Errore aggiornamento stato' });
+  }
+});
+
 // GET /api/clients → restituisce tutti i clienti
 router.get('/clients', async (req, res) => {
   try {
@@ -321,6 +386,103 @@ router.get('/export', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('Errore CSV export:', err);
     res.status(500).json({ error: 'Errore nel download del CSV' });
+  }
+});
+
+/**
+ * PATCH /api/tickets/:id/start
+ * Imposta lo stato a "in-progress" e salva l'orario di inizio
+ */
+router.patch('/:id/start', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.query(
+      `UPDATE tickets 
+       SET status = 'in-progress', started_at = NOW() 
+       WHERE id = $1 
+       RETURNING *`,
+      [id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Errore avvio ticket:', err);
+    res.status(500).json({ error: 'Errore avvio ticket' });
+  }
+});
+
+/**
+ * PATCH /api/tickets/:id/pause
+ * Imposta lo stato a "paused" (non modifica started_at)
+ */
+router.patch('/:id/pause', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.query(
+      `UPDATE tickets 
+       SET status = 'paused' 
+       WHERE id = $1 
+       RETURNING *`,
+      [id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Errore pausa ticket:', err);
+    res.status(500).json({ error: 'Errore pausa ticket' });
+  }
+});
+
+/**
+ * PATCH /api/tickets/:id/close
+ * Imposta lo stato a "closed", salva l'orario di chiusura e calcola le ore
+ */
+router.patch('/:id/close', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const ticketRes = await db.query('SELECT started_at FROM tickets WHERE id = $1', [id]);
+    const ticket = ticketRes.rows[0];
+
+    if (!ticket || !ticket.started_at) {
+      return res.status(400).json({ error: 'Ticket non avviato' });
+    }
+
+    const now = new Date();
+    const startedAt = new Date(ticket.started_at);
+    const workingHours = Math.floor((now - startedAt) / (1000 * 60 * 60)); // semplice
+
+    const result = await db.query(
+      `UPDATE tickets 
+       SET status = 'closed', closed_at = $1, working_hours = $2 
+       WHERE id = $3 
+       RETURNING *`,
+      [now, workingHours, id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Errore chiusura ticket:', err);
+    res.status(500).json({ error: 'Errore chiusura ticket' });
+  }
+});
+
+/**
+ * PATCH /api/tickets/:id/resume
+ * Riporta il ticket in stato "in-progress" dopo una pausa
+ */
+router.patch('/:id/resume', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.query(
+      `UPDATE tickets 
+       SET status = 'in-progress'
+       WHERE id = $1
+       RETURNING *`,
+      [id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Errore ripresa ticket:', err);
+    res.status(500).json({ error: 'Errore ripresa ticket' });
   }
 });
 
