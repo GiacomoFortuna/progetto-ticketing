@@ -48,9 +48,16 @@ function Home() {
               </p>
               <button
                 onClick={() => navigate('/login')}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition font-semibold w-full"
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition font-semibold w-full mb-4"
               >
                 Accedi
+              </button>
+              {/* Link Area Clienti */}
+              <button
+                onClick={() => navigate('/client-login')}
+                className="text-white underline text-sm hover:text-gray-300"
+              >
+                Area Clienti
               </button>
             </>
           ) : (

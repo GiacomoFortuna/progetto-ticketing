@@ -63,7 +63,7 @@ const TicketList = () => {
   const updateTicketStatus = async (id: number, newStatus: string) => {
     try {
       const res = await fetch(`http://localhost:3001/api/tickets/${id}/status`, {
-        method: 'PUT',
+        method: 'PATCH', // ← PATCH, non PUT
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -74,7 +74,6 @@ const TicketList = () => {
       if (!res.ok) throw new Error('Errore durante l\'aggiornamento dello stato');
 
       await fetchTickets();
-      // After fetching, find the updated ticket in the new state
       setTickets((prevTickets) => {
         const updatedTicket = prevTickets.find((t) => t.id === id);
         if (updatedTicket) setSelectedTicket(updatedTicket);

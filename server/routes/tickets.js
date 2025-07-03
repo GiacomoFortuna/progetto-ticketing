@@ -213,74 +213,60 @@ router.patch('/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  let query = '';
-  let values = [];
-
   try {
     if (status === 'in-progress') {
-      // Imposta started_at solo se non è già impostato
-      query = `
-        UPDATE tickets
-        SET status = $1,
-            started_at = COALESCE(started_at, NOW())
-        WHERE id = $2
-        RETURNING *
-      `;
-      values = [status, id];
-    } else if (status === 'closed') {
-      query = `
-        UPDATE tickets
-        SET status = $1,
-            closed_at = NOW()
-        WHERE id = $2
-        RETURNING *
-      `;
-      values = [status, id];
-    } else {
-      // per 'open' o 'paused' o altri
-      query = `
-        UPDATE tickets
-        SET status = $1
-        WHERE id = $2
-        RETURNING *
-      `;
-      values = [status, id];
-    }
+      const result = await db.query(
+        `UPDATE tickets
+         SET status = $1,
+             started_at = COALESCE(started_at, NOW())
+         WHERE id = $2
+         RETURNING *`,
+        [status, id]
+      );
+      return res.json(result.rows[0]);
 
-    const result = await db.query(query, values);
-    res.json(result.rows[0]);
+    } else if (status === 'closed') {
+      const ticketRes = await db.query('SELECT started_at FROM tickets WHERE id = $1', [id]);
+      const ticket = ticketRes.rows[0];
+
+      if (!ticket || !ticket.started_at) {
+        return res.status(400).json({ error: 'Ticket non avviato' });
+      }
+
+      const now = new Date();
+      const startedAt = new Date(ticket.started_at);
+      const workingHours = Math.floor((now - startedAt) / (1000 * 60 * 60));
+
+      // ✅ Log utile per debug
+      console.log('Chiudendo ticket ID:', id);
+      console.log('started_at:', ticket.started_at);
+      console.log('now:', now.toISOString());
+      console.log('working_hours calcolate:', workingHours);
+
+      const result = await db.query(
+        `UPDATE tickets 
+         SET status = $1,
+             closed_at = $2,
+             working_hours = $3
+         WHERE id = $4
+         RETURNING *`,
+        [status, now, workingHours, id]
+      );
+      return res.json(result.rows[0]);
+
+    } else {
+      const result = await db.query(
+        `UPDATE tickets
+         SET status = $1
+         WHERE id = $2
+         RETURNING *`,
+        [status, id]
+      );
+      return res.json(result.rows[0]);
+    }
   } catch (err) {
     console.error('Errore aggiornamento stato ticket:', err);
     res.status(500).json({ error: 'Errore aggiornamento stato ticket' });
-  }
-});
-
-// PUT /api/tickets/:id/status
-router.put('/:id/status', async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
-  try {
-    let updateFields = `status = $1`;
-    const values = [status];
-
-    if (status === 'in-progress') {
-      updateFields += `, started_at = NOW()`;
-    }
-
-    if (status === 'closed') {
-      updateFields += `, closed_at = NOW()`;
-    }
-
-    const result = await db.query(
-      `UPDATE tickets SET ${updateFields} WHERE id = $${values.length + 1} RETURNING *`,
-      [...values, id]
-    );
-
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Errore aggiornamento stato ticket:', err);
-    res.status(500).json({ error: 'Errore aggiornamento stato' });
   }
 });
 

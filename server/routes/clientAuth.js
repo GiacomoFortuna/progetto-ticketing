@@ -106,12 +106,26 @@ router.post('/client-tickets', upload.single('attachment'), async (req, res) => 
   const { title, description, client_id, project_id } = req.body;
   const filename = req.file ? req.file.filename : null;
 
+  // 🔐 Recupera l'utente loggato dal token per salvare "created_by"
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: 'Token mancante' });
+
+  const token = authHeader.split(' ')[1];
+  let createdBy;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    createdBy = decoded.email; // oppure decoded.name se preferisci
+  } catch (err) {
+    return res.status(403).json({ error: 'Token non valido' });
+  }
+
   try {
     const result = await db.query(
-      `INSERT INTO tickets (title, description, division, status, created_at, project_id, client_id, attachment)
-       VALUES ($1, $2, $3, 'open', NOW(), $4, $5, $6)
+      `INSERT INTO tickets (title, description, division, status, created_at, project_id, client_id, attachment, created_by)
+       VALUES ($1, $2, $3, 'open', NOW(), $4, $5, $6, $7)
        RETURNING *`,
-      [title, description, 'it-care', project_id, client_id, filename]
+      [title, description, 'it-care', project_id, client_id, filename, createdBy]
     );
 
     res.status(201).json(result.rows[0]);
@@ -124,6 +138,21 @@ router.post('/client-tickets', upload.single('attachment'), async (req, res) => 
 // GET /api/client-tickets/:client_id
 router.get('/client-tickets/:client_id', async (req, res) => {
   const { client_id } = req.params;
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Token mancante' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  let createdBy;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    createdBy = decoded.email; // oppure decoded.name
+  } catch (err) {
+    return res.status(403).json({ error: 'Token non valido' });
+  }
 
   try {
     const result = await db.query(
@@ -132,9 +161,9 @@ router.get('/client-tickets/:client_id', async (req, res) => {
          projects.name AS project_name
        FROM tickets
        LEFT JOIN projects ON tickets.project_id = projects.id
-       WHERE tickets.client_id = $1
+       WHERE tickets.client_id = $1 AND tickets.created_by = $2
        ORDER BY tickets.created_at DESC`,
-      [client_id]
+      [client_id, createdBy]
     );
     res.json(result.rows);
   } catch (err) {
