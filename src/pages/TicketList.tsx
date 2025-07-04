@@ -316,14 +316,16 @@ const TicketList = () => {
         <div className="space-y-4">
           {tickets
             .filter((t) => filterStatus === 'all' || t.status === filterStatus)
-            .map((ticket) => (
+            .map((ticket, index) => (
               <div
                 key={ticket.id}
                 className="bg-white p-4 rounded shadow cursor-pointer hover:bg-gray-50"
                 onClick={() => setSelectedTicket(ticket)}
               >
-                <div className="flex justify-between">
-                  <h2 className="font-bold">{ticket.title}</h2>
+                <div className="flex justify-between items-center">
+                  <h2 className="font-bold">
+                    {index + 1}. {ticket.title}
+                  </h2>
                   <span className={`px-2 py-1 rounded text-sm font-semibold ${getStatusColor(ticket.status)}`}>
                     {ticket.status}
                   </span>

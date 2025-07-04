@@ -3,7 +3,6 @@ import React from 'react';
 interface ClientTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStatusChange: (ticketId: number, newStatus: string) => void;
   ticket: {
     id: number;
     title: string;
@@ -33,15 +32,9 @@ const getStatusColor = (status: string) => {
 const ClientTicketModal: React.FC<ClientTicketModalProps> = ({
   isOpen,
   onClose,
-  onStatusChange,
   ticket,
 }) => {
   if (!isOpen) return null;
-
-  const handleStatusChange = (newStatus: string) => {
-    onStatusChange(ticket.id, newStatus);
-    onClose();
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -101,44 +94,6 @@ const ClientTicketModal: React.FC<ClientTicketModalProps> = ({
               <span className="text-gray-400">—</span>
             )}
           </div>
-
-          {/* Azioni sul ticket */}
-          {['open', 'in-progress', 'paused'].includes(ticket.status) && (
-            <div className="flex gap-3 pt-4 border-t mt-4">
-              {ticket.status === 'open' && (
-                <button
-                  onClick={() => handleStatusChange('in-progress')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Inizia
-                </button>
-              )}
-              {ticket.status === 'in-progress' && (
-                <>
-                  <button
-                    onClick={() => handleStatusChange('paused')}
-                    className="px-4 py-2 bg-yellow-400 text-white rounded hover:bg-yellow-500"
-                  >
-                    Metti in pausa
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('closed')}
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                  >
-                    Chiudi
-                  </button>
-                </>
-              )}
-              {ticket.status === 'paused' && (
-                <button
-                  onClick={() => handleStatusChange('in-progress')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Riprendi
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -146,6 +101,3 @@ const ClientTicketModal: React.FC<ClientTicketModalProps> = ({
 };
 
 export default ClientTicketModal;
-// This code defines a ClientTicketModal component that displays detailed information about a client's ticket.
-// It includes the ticket's title, status, description, project name, creation date, and an optional attachment.
-// The modal can be closed by clicking the close button, and it uses Tailwind CSS for styling.

@@ -23,7 +23,17 @@ const ClientDashboard = () => {
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/clientAuth/client-tickets/${clientUser?.client_id}`);
+        const token = localStorage.getItem('client_token');
+        if (!token) throw new Error('Token non trovato');
+
+        const res = await fetch(
+          `http://localhost:3001/api/clientAuth/client-tickets/${clientUser?.client_id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
         if (!res.ok) throw new Error('Errore nel recupero dei ticket');
         const data = await res.json();
         setTickets(data);

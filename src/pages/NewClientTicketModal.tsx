@@ -38,8 +38,14 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
     formData.append('client_id', String(clientId));
     if (attachment) formData.append('attachment', attachment);
 
+    const token = localStorage.getItem('client_token'); // Recupera il JWT salvato dopo il login
+
     const res = await fetch('http://localhost:3001/api/clientAuth/client-tickets', {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // NON aggiungere 'Content-Type', lo fa il browser!
+      },
       body: formData
     });
 
