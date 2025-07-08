@@ -209,22 +209,41 @@ router.patch('/:id', authMiddleware, async (req, res) => {
 });
 
 // PATCH /api/tickets/:id/status
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', require('../middleware/authMiddleware'), async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
+  const username = req.user.username;
 
   try {
     if (status === 'in-progress') {
-      const result = await db.query(
-        `UPDATE tickets
-         SET status = $1,
-             started_at = COALESCE(started_at, NOW())
-         WHERE id = $2
-         RETURNING *`,
-        [status, id]
-      );
-      return res.json(result.rows[0]);
+      // Leggi assigned_to attuale
+      const { rows } = await db.query('SELECT assigned_to FROM tickets WHERE id = $1', [id]);
+      if (!rows.length) return res.status(404).json({ error: 'Ticket non trovato' });
 
+      let query, params;
+      if (!rows[0].assigned_to) {
+        // Se NON è già assegnato, assegnalo a chi ha fatto la richiesta
+        query = `
+          UPDATE tickets
+          SET status = $1,
+              assigned_to = $2,
+              started_at = COALESCE(started_at, NOW())
+          WHERE id = $3
+          RETURNING *`;
+        params = [status, username, id];
+      } else {
+        // Se già assegnato, solo cambia lo stato (e started_at)
+        query = `
+          UPDATE tickets
+          SET status = $1,
+              started_at = COALESCE(started_at, NOW())
+          WHERE id = $2
+          RETURNING *`;
+        params = [status, id];
+      }
+
+      const result = await db.query(query, params);
+      return res.json(result.rows[0]);
     } else if (status === 'closed') {
       const ticketRes = await db.query('SELECT started_at FROM tickets WHERE id = $1', [id]);
       const ticket = ticketRes.rows[0];
@@ -253,7 +272,6 @@ router.patch('/:id/status', async (req, res) => {
         [status, now, workingHours, id]
       );
       return res.json(result.rows[0]);
-
     } else {
       const result = await db.query(
         `UPDATE tickets

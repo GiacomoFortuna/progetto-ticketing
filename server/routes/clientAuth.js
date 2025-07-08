@@ -103,7 +103,7 @@ router.get('/client-projects/:client_id', async (req, res) => {
 
 // POST /api/clientAuth/client-tickets
 router.post('/client-tickets', upload.single('attachment'), async (req, res) => {
-  const { title, description, client_id, project_id } = req.body;
+  const { title, description, client_id, project_id, division } = req.body;
   const filename = req.file ? req.file.filename : null;
 
   // 🔐 Recupera l'utente loggato dal token per salvare "created_by"
@@ -125,7 +125,7 @@ router.post('/client-tickets', upload.single('attachment'), async (req, res) => 
       `INSERT INTO tickets (title, description, division, status, created_at, project_id, client_id, attachment, created_by)
        VALUES ($1, $2, $3, 'open', NOW(), $4, $5, $6, $7)
        RETURNING *`,
-      [title, description, 'it-care', project_id, client_id, filename, createdBy]
+      [title, description, division, project_id, client_id, filename, createdBy]
     );
 
     res.status(201).json(result.rows[0]);

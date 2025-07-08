@@ -7,6 +7,12 @@ interface NewClientTicketModalProps {
   onTicketCreated: (newTicket: any) => void;
 }
 
+const CATEGORY_TO_DIVISION: Record<string, string> = {
+  'rete': 'networking',
+  'vm': 'cloud',
+  'tecnica': 'it-care',
+};
+
 const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
   isOpen,
   onClose,
@@ -18,6 +24,7 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
   const [projectId, setProjectId] = useState<number | null>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
   const [projects, setProjects] = useState([]);
+  const [category, setCategory] = useState<string>('');
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -31,6 +38,7 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
@@ -38,15 +46,17 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
     formData.append('client_id', String(clientId));
     if (attachment) formData.append('attachment', attachment);
 
-    const token = localStorage.getItem('client_token'); // Recupera il JWT salvato dopo il login
+    // Calcola division da categoria scelta
+    const division = CATEGORY_TO_DIVISION[category];
+    formData.append('division', division);
 
+    const token = localStorage.getItem('client_token');
     const res = await fetch('http://localhost:3001/api/clientAuth/client-tickets', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
-        // NON aggiungere 'Content-Type', lo fa il browser!
       },
-      body: formData
+      body: formData,
     });
 
     if (res.ok) {
@@ -56,6 +66,7 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
       setDescription('');
       setAttachment(null);
       setProjectId(null);
+      setCategory('');
     } else {
       alert('Errore nella creazione del ticket');
     }
@@ -98,6 +109,18 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
                 {p.name}
               </option>
             ))}
+          </select>
+
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            required
+            className="w-full border p-2 rounded"
+          >
+            <option value="">Scegli il tipo di assistenza</option>
+            <option value="rete">Assistenza rete</option>
+            <option value="vm">Assistenza VM</option>
+            <option value="tecnica">Assistenza tecnica</option>
           </select>
 
           <input

@@ -12,6 +12,7 @@ interface Ticket {
   closed_at?: string;
   working_hours?: number;
   attachment?: string;
+  assigned_to?: string;
 }
 
 interface Props {
@@ -94,6 +95,10 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket, onClose, onStatusChange 
             <div>
               <label className="font-semibold">Progetto:</label>
               <p>{ticket.project_name || '—'}</p>
+            </div>
+            <div>
+              <label className="font-semibold">Assegnato a:</label>
+              <p>{ticket.assigned_to || '—'}</p>
             </div>
             <div>
               <label className="font-semibold">Creato il:</label>
