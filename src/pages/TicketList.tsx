@@ -27,8 +27,10 @@ const TicketList = () => {
   const [filterDivision, setFilterDivision] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<string>('assigned');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc'); // default: più recente prima
 
   // Fetch tickets
   const fetchTickets = async () => {
@@ -39,8 +41,19 @@ const TicketList = () => {
       let url = 'http://localhost:3001/api/tickets';
       const params: string[] = [];
 
-      if (filterDivision) params.push(`division=${filterDivision}`);
       if (searchTerm) params.push(`search=${searchTerm}`);
+
+      if (viewMode === 'assigned') {
+        params.push(`assigned_to=${user?.username}`);
+      } else if (viewMode === 'created') {
+        params.push(`created_by=${user?.username}`);
+      } else if (
+        viewMode === 'cloud' ||
+        viewMode === 'networking' ||
+        viewMode === 'it-care'
+      ) {
+        params.push(`division=${viewMode}`);
+      }
 
       if (params.length > 0) url += `?${params.join('&')}`;
 
@@ -63,7 +76,7 @@ const TicketList = () => {
   const updateTicketStatus = async (id: number, newStatus: string) => {
     try {
       const res = await fetch(`http://localhost:3001/api/tickets/${id}/status`, {
-        method: 'PATCH', // ← PATCH, non PUT
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -88,7 +101,7 @@ const TicketList = () => {
   useEffect(() => {
     fetchTickets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterDivision, filterStatus, searchTerm]);
+  }, [filterDivision, filterStatus, searchTerm, viewMode]);
 
   const [showModal, setShowModal] = useState(false);
   const [newTicket, setNewTicket] = useState({
@@ -115,7 +128,6 @@ const TicketList = () => {
       return;
     }
 
-    // Define CSV headers
     const headers = [
       'ID',
       'Titolo',
@@ -131,7 +143,6 @@ const TicketList = () => {
       'Ore lavorate'
     ];
 
-    // Map tickets to CSV rows
     const rows = tickets.map(ticket => [
       ticket.id,
       `"${ticket.title.replace(/"/g, '""')}"`,
@@ -147,12 +158,10 @@ const TicketList = () => {
       ticket.working_hours != null ? ticket.working_hours : ''
     ]);
 
-    // Build CSV string
     const csvContent =
       headers.join(',') + '\n' +
       rows.map(row => row.join(',')).join('\n');
 
-    // Create blob and trigger download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
 
@@ -178,7 +187,6 @@ const TicketList = () => {
       formData.append('title', newTicket.title);
       formData.append('description', newTicket.description);
       formData.append('division', newTicket.division);
-      // Usa client_id invece di client per il backend
       formData.append('client_id', newTicket.client);
       formData.append('project_id', newTicket.project_id);
       if (newTicket.assigned_to) formData.append('assigned_to', newTicket.assigned_to);
@@ -194,7 +202,6 @@ const TicketList = () => {
 
       if (!res.ok) throw new Error('Errore nella creazione del ticket');
 
-      // Aggiorna la lista ticket dopo la creazione
       await fetchTickets();
       setShowModal(false);
       setNewTicket({
@@ -216,7 +223,6 @@ const TicketList = () => {
     }
   };
 
-  // Carica i clienti una sola volta
   useEffect(() => {
     fetch('http://localhost:3001/api/tickets/clients')
       .then((res) => res.json())
@@ -227,7 +233,6 @@ const TicketList = () => {
       });
   }, []);
 
-  // Quando selezioni un cliente, carica le infrastrutture
   useEffect(() => {
     if (!selectedClient) return;
     fetch(`http://localhost:3001/api/tickets/infrastructures?client_id=${selectedClient}`)
@@ -236,7 +241,6 @@ const TicketList = () => {
       .catch(() => alert('Errore nel caricamento infrastrutture'));
   }, [selectedClient]);
 
-  // Quando selezioni un’infrastruttura, carica i progetti
   useEffect(() => {
     if (!selectedInfrastructure) return;
     fetch(`http://localhost:3001/api/tickets/projects?infrastructure_id=${selectedInfrastructure}`)
@@ -246,16 +250,42 @@ const TicketList = () => {
   }, [selectedInfrastructure]);
 
   return (
-    <div className="max-w-5xl mx-auto mt-10 p-4">
-      <h1 className="text-2xl font-bold mb-6">Ticket in gestione</h1>
+    <div className="max-w-7xl mx-auto mt-10 p-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <h1 className="text-3xl font-extrabold text-[#429d46] flex items-center gap-2">
+          <svg className="inline-block" width="32" height="32" fill="none" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" fill="#429d46" fillOpacity="0.15"/>
+            <path d="M8 12l2 2 4-4" stroke="#429d46" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Ticket in gestione
+        </h1>
+        <div className="flex flex-wrap gap-2">
+          {user && user.role !== 'client_user' && user.role !== 'client_manager' && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-[#429d46] text-white px-5 py-2 rounded-lg font-semibold shadow hover:bg-[#357a36] transition"
+            >
+              + Nuovo Ticket
+            </button>
+          )}
+          {user?.role === 'manager' && (
+            <button
+              onClick={downloadCSV}
+              className="bg-lime-400 text-[#429d46] px-5 py-2 rounded-lg font-semibold shadow hover:bg-lime-500 transition"
+            >
+              Esporta CSV
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Filtri */}
-      <div className="flex flex-wrap gap-4 mb-4">
+      <div className="flex flex-wrap gap-4 mb-6 items-center bg-white rounded-xl shadow px-4 py-4">
         {user?.role === 'manager' && (
           <select
             value={filterDivision}
             onChange={(e) => setFilterDivision(e.target.value)}
-            className="border p-2 rounded"
+            className="border p-2 rounded focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
           >
             <option value="">Tutte le divisioni</option>
             <option value="cloud">Cloud</option>
@@ -267,7 +297,7 @@ const TicketList = () => {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="border p-2 rounded"
+          className="border p-2 rounded focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
         >
           <option value="all">Tutti gli stati</option>
           <option value="open">Aperti</option>
@@ -276,66 +306,101 @@ const TicketList = () => {
           <option value="closed">Chiusi</option>
         </select>
 
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+          className="border p-2 rounded focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
+        >
+          <option value="desc">Più recente prima</option>
+          <option value="asc">Meno recente prima</option>
+        </select>
+
         <input
           type="text"
           placeholder="Cerca titolo o descrizione..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="border p-2 rounded w-full md:w-64"
+          className="border p-2 rounded w-full md:w-64 focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
         />
 
-        {/* Pulsanti azione solo per utenti interni */}
-        {user && user.role !== 'client_user' && user.role !== 'client_manager' && (
-          <div className="flex items-center">
-            {/* Pulsante per aprire la modale di creazione ticket */}
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-            >
-              Nuovo Ticket
-            </button>
-            {/* Pulsante per esportare i ticket in CSV, visibile solo ai manager */}
-            {user?.role === 'manager' && (
-              <button
-                onClick={downloadCSV}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition ml-2"
-              >
-                Esporta CSV
-              </button>
+        {user && (
+          <select
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value)}
+            className="border p-2 rounded focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition ml-auto"
+          >
+            <option value="assigned">👤 Assegnati a me</option>
+            <option value="created">✍️ Creati da me</option>
+            {/* Utente base: solo la propria divisione */}
+            {user?.role !== 'manager' && (
+              <option value={user.division}>Divisione: {user.division}</option>
             )}
-          </div>
+            {/* Manager: può selezionare tutte le divisioni */}
+            {user?.role === 'manager' && (
+              <>
+                <option value="cloud">☁️ Cloud</option>
+                <option value="networking">🌐 Networking</option>
+                <option value="it-care">💻 IT-Care</option>
+              </>
+            )}
+          </select>
         )}
       </div>
 
       {/* Elenco ticket */}
-      {loading ? (
-        <p>Caricamento...</p>
-      ) : error ? (
-        <p className="text-red-600">{error}</p>
-      ) : (
-        <div className="space-y-4">
-          {tickets
-            .filter((t) => filterStatus === 'all' || t.status === filterStatus)
-            .map((ticket, index) => (
-              <div
-                key={ticket.id}
-                className="bg-white p-4 rounded shadow cursor-pointer hover:bg-gray-50"
-                onClick={() => setSelectedTicket(ticket)}
-              >
-                <div className="flex justify-between items-center">
-                  <h2 className="font-bold">
-                    {index + 1}. {ticket.title}
-                  </h2>
-                  <span className={`px-2 py-1 rounded text-sm font-semibold ${getStatusColor(ticket.status)}`}>
-                    {ticket.status}
-                  </span>
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10 rounded-xl">
+            <svg className="animate-spin h-8 w-8 text-[#429d46]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#429d46" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="#429d46" d="M4 12a8 8 0 018-8v8z"></path>
+            </svg>
+          </div>
+        )}
+        {error && (
+          <div className="bg-red-100 text-red-700 rounded p-4 mb-4">{error}</div>
+        )}
+        {!loading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {tickets
+              .filter((t) => {
+                if (filterStatus === 'all') {
+                  return t.status !== 'closed'; // esclude chiusi se non richiesto
+                }
+                return t.status === filterStatus;
+              })
+              .sort((a, b) => {
+                const dateA = new Date(a.created_at).getTime();
+                const dateB = new Date(b.created_at).getTime();
+                return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+              })
+              .map((ticket, index) => (
+                <div
+                  key={ticket.id}
+                  className="bg-white p-6 rounded-2xl shadow-lg cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all border border-transparent hover:border-[#429d46]/30 group"
+                  onClick={() => setSelectedTicket(ticket)}
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h2 className="font-bold text-lg text-[#429d46] group-hover:underline">
+                      {index + 1}. {ticket.title}
+                    </h2>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(ticket.status)}`}>
+                      {ticket.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 mb-2 line-clamp-2">{ticket.description}</p>
+                  <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                    <span>Cliente: <span className="font-semibold text-gray-700">{ticket.client_name || '—'}</span></span>
+                    <span>Progetto: <span className="font-semibold text-gray-700">{ticket.project_name || '—'}</span></span>
+                  </div>
+                  <div className="text-xs text-gray-400 mt-2">
+                    Creato il: {new Date(ticket.created_at).toLocaleString()}
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">{ticket.description}</p>
-                <p className="text-xs text-gray-400 mt-1">Creato il: {new Date(ticket.created_at).toLocaleString()}</p>
-              </div>
-            ))}
-        </div>
-      )}
+              ))}
+          </div>
+        )}
+      </div>
 
       {/* Modale dettaglio */}
       {selectedTicket && (
@@ -350,14 +415,14 @@ const TicketList = () => {
       {/* Modale creazione ticket */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-full max-w-xl relative">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-xl relative">
             <button
-              className="absolute top-2 right-2 text-gray-600 hover:text-black"
+              className="absolute top-3 right-4 text-gray-500 hover:text-black text-2xl"
               onClick={() => setShowModal(false)}
             >
               ✕
             </button>
-            <h2 className="text-xl font-bold mb-4">Crea nuovo ticket</h2>
+            <h2 className="text-2xl font-bold mb-6 text-[#429d46]">Crea nuovo ticket</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* CLIENTE */}
               <select
@@ -373,7 +438,7 @@ const TicketList = () => {
                     project_id: '',
                   });
                 }}
-                className="border p-2 rounded w-full"
+                className="border p-2 rounded w-full focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
               >
                 <option value="">Seleziona cliente</option>
                 {clients.map((c: any) => (
@@ -393,7 +458,7 @@ const TicketList = () => {
                       project_id: '',
                     });
                   }}
-                  className="border p-2 rounded w-full"
+                  className="border p-2 rounded w-full focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
                 >
                   <option value="">Seleziona infrastruttura</option>
                   {infrastructures.map((i: any) => (
@@ -410,7 +475,7 @@ const TicketList = () => {
                   onChange={(e) =>
                     setNewTicket({ ...newTicket, project_id: e.target.value })
                   }
-                  className="border p-2 rounded w-full"
+                  className="border p-2 rounded w-full focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
                 >
                   <option value="">Seleziona progetto</option>
                   {projects.map((p: any) => (
@@ -426,7 +491,7 @@ const TicketList = () => {
                 onChange={handleChange}
                 placeholder="Titolo"
                 required
-                className="w-full border p-2 rounded"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
               />
 
               {/* Descrizione */}
@@ -436,7 +501,7 @@ const TicketList = () => {
                 onChange={handleChange}
                 placeholder="Descrizione"
                 required
-                className="w-full border p-2 rounded"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
               />
 
               {/* DIVISIONE */}
@@ -447,7 +512,6 @@ const TicketList = () => {
                   const division = e.target.value;
                   setNewTicket({ ...newTicket, division, assigned_to: '' });
 
-                  // Carica utenti per divisione
                   if (division) {
                     try {
                       const res = await fetch(`http://localhost:3001/api/users/by-division?division=${division}`);
@@ -462,7 +526,7 @@ const TicketList = () => {
                   }
                 }}
                 required
-                className="w-full border p-2 rounded"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
               >
                 <option value="">Seleziona Divisione</option>
                 <option value="cloud">Cloud</option>
@@ -475,7 +539,7 @@ const TicketList = () => {
                 name="assigned_to"
                 value={newTicket.assigned_to}
                 onChange={handleChange}
-                className="w-full border p-2 rounded"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
               >
                 <option value="">Assegna a tutta la divisione</option>
                 {availableUsers.map((u) => (
@@ -493,13 +557,13 @@ const TicketList = () => {
                   if (file) setAttachment(file);
                 }}
                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                className="w-full border p-2 rounded"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
               />
 
               {/* SUBMIT */}
               <button
                 type="submit"
-                className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition"
+                className="bg-[#429d46] text-white py-2 px-6 rounded-lg font-semibold shadow hover:bg-[#357a36] transition w-full"
               >
                 Crea Ticket
               </button>

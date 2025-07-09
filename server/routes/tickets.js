@@ -4,6 +4,8 @@ const db = require('../db');
 const authMiddleware = require('../middleware/authMiddleware');
 const { Parser } = require('json2csv'); // 👉 libreria per convertire JSON in CSV
 const sharp = require('sharp');
+const { sendTelegramNotification } = require('../utils/telegram'); // <-- aggiunto qui
+const fs = require('fs');
 
 // --- INIZIO INTEGRAZIONE UPLOAD ---
 const multer = require('multer');
@@ -81,7 +83,7 @@ router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
   if (isManager && req.query.division) {
     whereClauses.push('t.division = $' + (params.length + 1));
     params.push(req.query.division);
-  } else if (!isManager && division) {
+  } else if (!isManager && division && !req.query.created_by) {
     whereClauses.push('t.division = $' + (params.length + 1));
     params.push(division);
   }
@@ -90,6 +92,18 @@ router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
   if (req.query.search) {
     whereClauses.push(`(t.title ILIKE $${params.length + 1} OR t.description ILIKE $${params.length + 1})`);
     params.push(`%${req.query.search}%`);
+  }
+
+  // Filtro per assigned_to
+  if (req.query.assigned_to) {
+    whereClauses.push(`t.assigned_to = $${params.length + 1}`);
+    params.push(req.query.assigned_to);
+  }
+
+  // Filtro per created_by
+  if (req.query.created_by) {
+    whereClauses.push(`t.created_by = $${params.length + 1}`);
+    params.push(req.query.created_by);
   }
 
   if (whereClauses.length > 0) {
@@ -149,7 +163,18 @@ router.post('/', authMiddleware, upload.single('attachment'), async (req, res) =
       [title, description, division, clientIdValue, projectIdValue, assigned_to || null, created_by, attachment]
     );
 
-    res.status(201).json(result.rows[0]);
+    const newTicket = result.rows[0];
+
+    // -> aggiungi queste righe per recuperare il nome
+    const clientResult = await db.query('SELECT name FROM clients WHERE id = $1', [newTicket.client_id]);
+    newTicket.client_name = clientResult.rows[0]?.name;
+
+    // ora puoi mandare la notifica con client_name incluso
+    if (newTicket.division === 'cloud') {
+      sendTelegramNotification(newTicket);
+    }
+
+    res.status(201).json(newTicket);
   } catch (err) {
     console.error('Errore creazione ticket:', err);
     res.status(500).json({ error: 'Errore interno' });
@@ -213,6 +238,17 @@ router.patch('/:id/status', require('../middleware/authMiddleware'), async (req,
   const { id } = req.params;
   const { status } = req.body;
   const username = req.user.username;
+
+  // Blocco manager fuori dalla propria divisione
+  const ticketCheck = await db.query('SELECT division FROM tickets WHERE id = $1', [id]);
+  const ticket = ticketCheck.rows[0];
+
+  if (!ticket) {
+    return res.status(404).json({ error: 'Ticket non trovato' });
+  }
+  if (req.user.role === 'manager' && ticket.division !== req.user.division) {
+    return res.status(403).json({ error: 'Non puoi modificare ticket di altre divisioni' });
+  }
 
   try {
     if (status === 'in-progress') {
@@ -397,8 +433,18 @@ router.get('/export', authMiddleware, async (req, res) => {
  * PATCH /api/tickets/:id/start
  * Imposta lo stato a "in-progress" e salva l'orario di inizio
  */
-router.patch('/:id/start', async (req, res) => {
+router.patch('/:id/start', require('../middleware/authMiddleware'), async (req, res) => {
   const { id } = req.params;
+  const user = req.user;
+  const check = await db.query('SELECT division FROM tickets WHERE id = $1', [id]);
+  const ticket = check.rows[0];
+
+  if (!ticket) return res.status(404).json({ error: 'Ticket non trovato' });
+
+  if (user.role === 'manager' && ticket.division !== user.division) {
+    return res.status(403).json({ error: 'Non puoi avviare ticket di altre divisioni' });
+  }
+
   try {
     const result = await db.query(
       `UPDATE tickets 
@@ -418,8 +464,18 @@ router.patch('/:id/start', async (req, res) => {
  * PATCH /api/tickets/:id/pause
  * Imposta lo stato a "paused" (non modifica started_at)
  */
-router.patch('/:id/pause', async (req, res) => {
+router.patch('/:id/pause', require('../middleware/authMiddleware'), async (req, res) => {
   const { id } = req.params;
+  const user = req.user;
+  const check = await db.query('SELECT division FROM tickets WHERE id = $1', [id]);
+  const ticket = check.rows[0];
+
+  if (!ticket) return res.status(404).json({ error: 'Ticket non trovato' });
+
+  if (user.role === 'manager' && ticket.division !== user.division) {
+    return res.status(403).json({ error: 'Non puoi mettere in pausa ticket di altre divisioni' });
+  }
+
   try {
     const result = await db.query(
       `UPDATE tickets 
@@ -439,8 +495,17 @@ router.patch('/:id/pause', async (req, res) => {
  * PATCH /api/tickets/:id/close
  * Imposta lo stato a "closed", salva l'orario di chiusura e calcola le ore
  */
-router.patch('/:id/close', async (req, res) => {
+router.patch('/:id/close', require('../middleware/authMiddleware'), async (req, res) => {
   const { id } = req.params;
+  const user = req.user;
+  const check = await db.query('SELECT division FROM tickets WHERE id = $1', [id]);
+  const ticketCheck = check.rows[0];
+
+  if (!ticketCheck) return res.status(404).json({ error: 'Ticket non trovato' });
+
+  if (user.role === 'manager' && ticketCheck.division !== user.division) {
+    return res.status(403).json({ error: 'Non puoi chiudere ticket di altre divisioni' });
+  }
 
   try {
     const ticketRes = await db.query('SELECT started_at FROM tickets WHERE id = $1', [id]);
@@ -473,8 +538,18 @@ router.patch('/:id/close', async (req, res) => {
  * PATCH /api/tickets/:id/resume
  * Riporta il ticket in stato "in-progress" dopo una pausa
  */
-router.patch('/:id/resume', async (req, res) => {
+router.patch('/:id/resume', require('../middleware/authMiddleware'), async (req, res) => {
   const { id } = req.params;
+  const user = req.user;
+  const check = await db.query('SELECT division FROM tickets WHERE id = $1', [id]);
+  const ticket = check.rows[0];
+
+  if (!ticket) return res.status(404).json({ error: 'Ticket non trovato' });
+
+  if (user.role === 'manager' && ticket.division !== user.division) {
+    return res.status(403).json({ error: 'Non puoi riprendere ticket di altre divisioni' });
+  }
+
   try {
     const result = await db.query(
       `UPDATE tickets 
@@ -487,6 +562,46 @@ router.patch('/:id/resume', async (req, res) => {
   } catch (err) {
     console.error('Errore ripresa ticket:', err);
     res.status(500).json({ error: 'Errore ripresa ticket' });
+  }
+});
+
+// PATCH /api/tickets/:id/assign
+router.patch('/:id/assign', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { assigned_to } = req.body;
+  const user = req.user;
+
+  if (user.role !== 'manager') {
+    return res.status(403).json({ error: 'Solo i manager possono assegnare ticket' });
+  }
+
+  try {
+    // Verifica che il ticket sia della stessa divisione del manager e non ancora assegnato
+    const ticketRes = await db.query('SELECT division, assigned_to FROM tickets WHERE id = $1', [id]);
+    const ticket = ticketRes.rows[0];
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket non trovato' });
+    }
+
+    if (ticket.division !== user.division) {
+      return res.status(403).json({ error: 'Non puoi assegnare ticket di altre divisioni' });
+    }
+
+    if (ticket.assigned_to) {
+      return res.status(400).json({ error: 'Il ticket è già assegnato' });
+    }
+
+    // Assegna il ticket
+    const result = await db.query(
+      'UPDATE tickets SET assigned_to = $1 WHERE id = $2 RETURNING *',
+      [assigned_to, id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Errore assegnazione ticket:', err);
+    res.status(500).json({ error: 'Errore interno durante l\'assegnazione' });
   }
 });
 

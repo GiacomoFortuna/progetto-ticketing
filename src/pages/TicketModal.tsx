@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface Ticket {
   id: number;
@@ -13,6 +13,7 @@ interface Ticket {
   working_hours?: number;
   attachment?: string;
   assigned_to?: string;
+  division?: string;
 }
 
 interface Props {
@@ -47,19 +48,69 @@ const formatDate = (value?: string) => {
   }).format(date);
 };
 
-const TicketModal: React.FC<Props> = ({ isOpen, ticket, onClose, onStatusChange }) => {
-  if (!isOpen || !ticket) return null;
+const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, onStatusChange }) => {
+  const [ticket, setTicket] = useState<Ticket | null>(initialTicket);
+  const [divisionUsers, setDivisionUsers] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
 
-  const canStart = ticket.status === 'open';
-  const canPause = ticket.status === 'in-progress';
-  const canClose = ticket.status === 'in-progress' || ticket.status === 'paused';
-  const canResume = ticket.status === 'paused';
+  useEffect(() => {
+    setTicket(initialTicket);
+  }, [initialTicket]);
+
+  useEffect(() => {
+    // Recupera user dal localStorage (se non già fornito via props/context)
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) setUser(JSON.parse(storedUser));
+  }, []);
+
+  useEffect(() => {
+    if (ticket?.division) {
+      fetch(`http://localhost:3001/api/users/by-division?division=${ticket.division}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      })
+        .then((res) => res.json())
+        .then(setDivisionUsers)
+        .catch(() => setDivisionUsers([]));
+    }
+  }, [ticket?.division]);
+
+  const canStart = ticket?.status === 'open';
+  const canPause = ticket?.status === 'in-progress';
+  const canClose = ticket?.status === 'in-progress' || ticket?.status === 'paused';
+  const canResume = ticket?.status === 'paused';
 
   const handleStatusChange = (newStatus: string) => {
     if (ticket) {
       onStatusChange(ticket.id, newStatus);
     }
   };
+
+  // Funzione per assegnare il ticket (solo manager)
+  const handleAssign = async (ticketId: number, username: string) => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/tickets/${ticketId}/assign`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ assigned_to: username }),
+      });
+
+      if (!res.ok) throw new Error('Errore durante l\'assegnazione');
+
+      const updatedTicket = await res.json();
+      // Aggiorna localmente lo stato del ticket per visualizzare il nuovo assigned_to
+      setTicket((prev) => prev ? { ...prev, assigned_to: updatedTicket.assigned_to } : null);
+    } catch (err) {
+      console.error(err);
+      alert('Errore durante l\'assegnazione');
+    }
+  };
+
+  if (!isOpen || !ticket) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -137,6 +188,25 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket, onClose, onStatusChange 
             </div>
           )}
         </div>
+
+        {/* Assegna a (solo manager, solo se non già assegnato) */}
+        {user?.role === 'manager' && !ticket.assigned_to && (
+          <div className="mt-4">
+            <label className="block font-semibold mb-1">Assegna a:</label>
+            <select
+              className="w-full border p-2 rounded"
+              onChange={(e) => handleAssign(ticket.id, e.target.value)}
+              defaultValue=""
+            >
+              <option value="" disabled>Seleziona utente</option>
+              {divisionUsers.map((u: any) => (
+                <option key={u.username} value={u.username}>
+                  {u.username}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Azioni sullo stato del ticket */}
         <div className="flex gap-2 mt-6 justify-end">
