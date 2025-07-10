@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { sendTelegramNotification } = require('../utils/telegram');
 
 // Storage per file allegati
 const storage = multer.diskStorage({
@@ -128,7 +129,18 @@ router.post('/client-tickets', upload.single('attachment'), async (req, res) => 
       [title, description, division, project_id, client_id, filename, createdBy]
     );
 
-    res.status(201).json(result.rows[0]);
+    const newTicket = result.rows[0];
+
+    // Recupera nome cliente (richiesto da Telegram)
+    const clientResult = await db.query('SELECT name FROM clients WHERE id = $1', [client_id]);
+    newTicket.client_name = clientResult.rows[0]?.name;
+
+    // Invia notifica solo se division è "cloud"
+    if (division === 'cloud') {
+      sendTelegramNotification(newTicket);
+    }
+
+    res.status(201).json(newTicket);
   } catch (err) {
     console.error('Errore creazione ticket client:', err);
     res.status(500).json({ error: 'Errore creazione ticket' });

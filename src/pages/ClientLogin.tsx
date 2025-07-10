@@ -69,6 +69,15 @@ const ClientLogin = () => {
             Accedi
           </button>
         </form>
+        <div className="text-center mt-4">
+  <button
+    onClick={() => navigate('/')}
+    className="text-sm text-gray-600 hover:text-[#429d46] underline"
+  >
+    Torna alla Home
+  </button>
+</div>
+
       </div>
     </div>
   );

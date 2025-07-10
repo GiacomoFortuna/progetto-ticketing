@@ -80,7 +80,7 @@ const ClientDashboard = () => {
         <div className="text-gray-500 italic">Nessun ticket presente.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {tickets.map((ticket, index) => (
+          {tickets.map((ticket) => (
             <div
               key={ticket.id}
               className="bg-white border border-[#429d46]/10 rounded-2xl shadow hover:shadow-lg p-5 cursor-pointer transition-all hover:scale-[1.01]"
@@ -91,7 +91,7 @@ const ClientDashboard = () => {
             >
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-bold text-[#429d46]">
-                  {index + 1}. {ticket.title}
+                  {'#TCK-' + ticket.id} — {ticket.title}
                 </h3>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(ticket.status)}`}>
                   {ticket.status}

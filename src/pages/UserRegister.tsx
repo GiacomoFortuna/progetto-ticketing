@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { registerUser } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 function UserRegister() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -73,6 +75,13 @@ function UserRegister() {
           </select>
           <button type="submit" className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">Registra</button>
         </form>
+        <button
+          type="button"
+          className="mt-4 w-full bg-gray-200 text-gray-700 p-2 rounded hover:bg-gray-300"
+          onClick={() => navigate('/ticket')}
+        >
+          Torna ai ticket
+        </button>
       </div>
     </div>
   );

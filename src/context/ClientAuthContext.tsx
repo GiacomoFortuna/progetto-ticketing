@@ -15,6 +15,7 @@ type ClientAuthContextType = {
   token: string | null;
   login: (user: ClientUser, token: string) => void;
   logout: () => void;
+  loading: boolean; // ⬅️ aggiunto
 };
 
 const ClientAuthContext = createContext<ClientAuthContextType | undefined>(undefined);
@@ -22,6 +23,7 @@ const ClientAuthContext = createContext<ClientAuthContextType | undefined>(undef
 export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [clientUser, setClientUser] = useState<ClientUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +33,7 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
       setToken(savedToken);
       setClientUser(JSON.parse(savedUser));
     }
+    setLoading(false);
   }, []);
 
   const login = (user: ClientUser, token: string) => {
@@ -49,7 +52,7 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <ClientAuthContext.Provider value={{ clientUser, token, login, logout }}>
+    <ClientAuthContext.Provider value={{ clientUser, token, login, logout, loading }}>
       {children}
     </ClientAuthContext.Provider>
   );

@@ -43,3 +43,4 @@ const Header = () => {
 export default Header;
 // This component renders the header with the Planetel logo, user information, and a logout button.
 // It also includes a button to open a popup for changing the user's password.
+// No changes needed here for notes functionality

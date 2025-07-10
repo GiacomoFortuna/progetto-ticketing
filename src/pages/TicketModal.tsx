@@ -14,6 +14,7 @@ interface Ticket {
   attachment?: string;
   assigned_to?: string;
   division?: string;
+  notes?: string;
 }
 
 interface Props {
@@ -52,6 +53,7 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, 
   const [ticket, setTicket] = useState<Ticket | null>(initialTicket);
   const [divisionUsers, setDivisionUsers] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [noteInput, setNoteInput] = useState(''); // inserisci in alto
 
   useEffect(() => {
     setTicket(initialTicket);
@@ -110,11 +112,36 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, 
     }
   };
 
+  // Funzione per aggiungere una nota
+  const handleAddNote = async () => {
+    if (!ticket || !noteInput.trim()) return;
+
+    try {
+      const res = await fetch(`http://localhost:3001/api/tickets/${ticket.id}/notes`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ new_note: noteInput }),
+      });
+
+      if (!res.ok) throw new Error('Errore durante l\'aggiunta della nota');
+
+      const updatedTicket = await res.json();
+      setTicket(updatedTicket); // aggiorna con le note nuove
+      setNoteInput('');
+    } catch (err) {
+      console.error(err);
+      alert('Errore durante l\'aggiunta della nota');
+    }
+  };
+
   if (!isOpen || !ticket) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 relative">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative">
         {/* Bottone di chiusura */}
         <button
           onClick={onClose}
@@ -189,22 +216,51 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, 
           )}
         </div>
 
-        {/* Assegna a (solo manager, solo se non già assegnato) */}
-        {user?.role === 'manager' && !ticket.assigned_to && (
+        {/* Assegna a (manager o assegnatario attuale) */}
+        {(user?.role === 'manager' || user?.username === ticket.assigned_to) && (
           <div className="mt-4">
             <label className="block font-semibold mb-1">Assegna a:</label>
             <select
               className="w-full border p-2 rounded"
               onChange={(e) => handleAssign(ticket.id, e.target.value)}
-              defaultValue=""
+              value={ticket.assigned_to || ''}
             >
               <option value="" disabled>Seleziona utente</option>
-              {divisionUsers.map((u: any) => (
-                <option key={u.username} value={u.username}>
-                  {u.username}
-                </option>
+              {divisionUsers
+                .filter((u: any) => u.username !== ticket.assigned_to)
+                .map((u: any) => (
+                  <option key={u.username} value={u.username}>
+                    {u.username}
+                  </option>
               ))}
             </select>
+          </div>
+        )}
+
+        {/* Note interne (solo aziendale) */}
+        {user?.role !== 'client_user' && user?.role !== 'client_manager' && (
+          <div className="mt-6">
+            <label className="font-semibold block mb-1">Note interne:</label>
+            <textarea
+              value={ticket.notes || '—'}
+              readOnly
+              className="w-full p-2 border rounded bg-gray-50 text-sm whitespace-pre-line h-40"
+            />
+
+            <div className="mt-3">
+              <textarea
+                value={noteInput}
+                onChange={(e) => setNoteInput(e.target.value)}
+                placeholder="Aggiungi una nuova nota..."
+                className="w-full p-2 border rounded h-20"
+              />
+              <button
+                onClick={handleAddNote}
+                className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Aggiungi nota
+              </button>
+            </div>
           </div>
         )}
 

@@ -20,7 +20,7 @@ const ClientSidebar = () => {
 
   return (
     <aside
-      className={`bg-[#14532d] text-white h-screen fixed top-0 left-0 z-40 shadow-lg transition-all duration-300 flex flex-col ${
+      className={`bg-[#429d46] text-white h-screen fixed top-0 left-0 z-40 shadow-lg transition-all duration-300 flex flex-col ${
         isOpen ? 'w-64' : 'w-16'
       }`}
     >

@@ -15,10 +15,19 @@ import LayoutCliente from './components/LayoutCliente'; // usa il tuo componente
 // Se in futuro usi ClientProfile, importa anche quello
 import ClientProfile from './pages/ClientProfile';
 import PlanetelInfo from './pages/PlanetelInfo';
+import { useAuth } from './context/AuthContext';
+import { useClientAuth } from './context/ClientAuthContext';
 
 const LayoutAziendale = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+
+  const { loading: authLoading } = useAuth();
+  const { loading: clientLoading } = useClientAuth();
+
+if (authLoading || clientLoading) {
+  return <div className="text-center mt-32 text-lg font-semibold">Caricamento in corso...</div>;
+}
 
   return (
     <div className="bg-[#f2f2f2] min-h-screen">

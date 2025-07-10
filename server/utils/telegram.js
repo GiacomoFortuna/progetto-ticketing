@@ -11,7 +11,8 @@ const sendTelegramNotification = async (ticket) => {
 
   const clientLabel = ticket.client_name || `ID cliente: ${ticket.client_id || 'n/a'}`;
 
-  const message = `📩 *Nuovo ticket - CLOUD*\n\n` +
+  const message = `🆔 *Ticket:* tck${ticket.id}\n` + // ← identificativo in cima
+    `📩 *Nuovo ticket - CLOUD*\n\n` +
     `🏢 *Cliente:* ${clientLabel}\n` +
     `📝 *Titolo:* ${ticket.title}\n` +
     `📄 *Descrizione:* ${ticket.description}\n` +

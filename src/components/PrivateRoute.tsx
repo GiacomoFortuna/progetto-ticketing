@@ -7,15 +7,22 @@ type Props = {
 };
 
 function PrivateRoute({ children }: Props) {
-  const { user } = useAuth();
+  const { user, token, loading } = useAuth();
 
-  if (!user) {
+  // ⏳ Mostra un loader se il context sta ancora caricando i dati da localStorage
+  if (loading) {
+    return <div className="text-center mt-32 text-lg font-semibold">Controllo autenticazione...</div>;
+  }
+
+  // 🔐 Se non autenticato → redirect al login
+  if (!user || !token) {
     return <Navigate to="/login" />;
   }
 
+  // ✅ Se autenticato → mostra i children
   return children;
 }
 
 export default PrivateRoute;
-// This code defines a PrivateRoute component for a React application.
-// It checks if a user is authenticated using the useAuth hook.
+// This component checks if the user is authenticated.
+// If not, it redirects to the login page.

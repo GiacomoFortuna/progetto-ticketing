@@ -68,6 +68,7 @@ router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
       t.working_hours,
       t.created_by,
       t.attachment,
+      t.notes, -- 👈 AGGIUNTO QUI
       p.name AS project_name,
       i.name AS infrastructure_name,
       c.name AS client_name
@@ -566,42 +567,47 @@ router.patch('/:id/resume', require('../middleware/authMiddleware'), async (req,
 });
 
 // PATCH /api/tickets/:id/assign
-router.patch('/:id/assign', authMiddleware, async (req, res) => {
+router.patch('/:id/assign', require('../middleware/authMiddleware'), async (req, res) => {
   const { id } = req.params;
   const { assigned_to } = req.body;
-  const user = req.user;
-
-  if (user.role !== 'manager') {
-    return res.status(403).json({ error: 'Solo i manager possono assegnare ticket' });
-  }
 
   try {
-    // Verifica che il ticket sia della stessa divisione del manager e non ancora assegnato
-    const ticketRes = await db.query('SELECT division, assigned_to FROM tickets WHERE id = $1', [id]);
-    const ticket = ticketRes.rows[0];
-
-    if (!ticket) {
-      return res.status(404).json({ error: 'Ticket non trovato' });
-    }
-
-    if (ticket.division !== user.division) {
-      return res.status(403).json({ error: 'Non puoi assegnare ticket di altre divisioni' });
-    }
-
-    if (ticket.assigned_to) {
-      return res.status(400).json({ error: 'Il ticket è già assegnato' });
-    }
-
-    // Assegna il ticket
     const result = await db.query(
       'UPDATE tickets SET assigned_to = $1 WHERE id = $2 RETURNING *',
       [assigned_to, id]
     );
-
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Errore assegnazione ticket:', err);
-    res.status(500).json({ error: 'Errore interno durante l\'assegnazione' });
+    console.error('Errore durante la riassegnazione:', err);
+    res.status(500).json({ error: 'Errore durante la riassegnazione' });
+  }
+});
+
+// PATCH /api/tickets/:id/notes → Aggiunge o aggiorna le note
+router.patch('/:id/notes', require('../middleware/authMiddleware'), async (req, res) => {
+  const { id } = req.params;
+  const { new_note } = req.body;
+
+  try {
+    // Recupera note attuali
+    const result = await db.query('SELECT notes FROM tickets WHERE id = $1', [id]);
+    const currentNotes = result.rows[0]?.notes || '';
+
+    // Aggiungi nuova nota con timestamp e username
+    const timestamp = new Date().toLocaleString('it-IT');
+    const newEntry = `[${timestamp}] ${req.user.username}:\n${new_note}`;
+    const updatedNotes = currentNotes ? `${currentNotes}\n\n${newEntry}` : newEntry;
+
+    // Salva
+    const update = await db.query(
+      'UPDATE tickets SET notes = $1 WHERE id = $2 RETURNING *',
+      [updatedNotes, id]
+    );
+
+    res.json(update.rows[0]); // 👈 restituisci tutto il ticket aggiornato
+  } catch (err) {
+    console.error('Errore aggiornamento note:', err);
+    res.status(500).json({ error: 'Errore aggiornamento note' });
   }
 });
 

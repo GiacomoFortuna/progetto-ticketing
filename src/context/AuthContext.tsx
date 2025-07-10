@@ -14,6 +14,7 @@ type AuthContextType = {
   token: string | null;
   role: string | null;
   updatePassword?: (newPassword: string) => Promise<void>;
+  loading: boolean; // ⬅️ aggiunto
 };
 
 
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   //  Inizializza lo stato da localStorage (utile dopo reload o cambio utente)
   useEffect(() => {
@@ -31,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
     }
+    setLoading(false); // <-- una volta fatto il check
   }, []);
 
   const login = (userData: User, authToken: string) => {
@@ -71,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, token, role: user?.role || null, updatePassword, }}>
+    <AuthContext.Provider value={{ user, login, logout, token, role: user?.role || null, updatePassword, loading }}>
       {children}
     </AuthContext.Provider>
   );

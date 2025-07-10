@@ -361,7 +361,7 @@ const TicketList = () => {
                 const dateB = new Date(b.created_at).getTime();
                 return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
               })
-              .map((ticket, index) => (
+              .map((ticket) => (
                 <div
                   key={ticket.id}
                   className="bg-white p-6 rounded-2xl shadow-lg cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all border border-transparent hover:border-[#429d46]/30 group"
@@ -369,7 +369,7 @@ const TicketList = () => {
                 >
                   <div className="flex justify-between items-center mb-2">
                     <h2 className="font-bold text-lg text-[#429d46] group-hover:underline">
-                      {index + 1}. {ticket.title}
+                      {'#TCK-' + ticket.id} — {ticket.title}
                     </h2>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(ticket.status)}`}>
                       {ticket.status}
