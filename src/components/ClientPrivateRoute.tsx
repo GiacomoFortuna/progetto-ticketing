@@ -5,6 +5,13 @@ import type { JSX } from 'react';
 const ClientPrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { clientUser, token } = useClientAuth();
 
+  const loading = token === null && clientUser === null;
+
+  if (loading) {
+    // 👇 Evita di redirectare mentre ancora si caricano dati da localStorage
+    return null; // oppure uno spinner temporaneo
+  }
+
   if (!clientUser || !token) {
     return <Navigate to="/client-login" replace />;
   }
@@ -13,5 +20,5 @@ const ClientPrivateRoute = ({ children }: { children: JSX.Element }) => {
 };
 
 export default ClientPrivateRoute;
-// This code defines a ClientPrivateRoute component for a React application.
-// It checks if a client user is authenticated using the useClientAuth hook.
+// This component checks if the user is authenticated as a client.
+// If not, it redirects to the client login page.

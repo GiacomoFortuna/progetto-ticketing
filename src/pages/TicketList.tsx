@@ -24,7 +24,7 @@ const TicketList = () => {
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [filterDivision, setFilterDivision] = useState('');
+  // const [filterDivision, setFilterDivision] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<string>('assigned');
@@ -101,7 +101,7 @@ const TicketList = () => {
   useEffect(() => {
     fetchTickets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterDivision, filterStatus, searchTerm, viewMode]);
+  }, [filterStatus, searchTerm, viewMode]);
 
   const [showModal, setShowModal] = useState(false);
   const [newTicket, setNewTicket] = useState({
@@ -281,19 +281,6 @@ const TicketList = () => {
 
       {/* Filtri */}
       <div className="flex flex-wrap gap-4 mb-6 items-center bg-white rounded-xl shadow px-4 py-4">
-        {user?.role === 'manager' && (
-          <select
-            value={filterDivision}
-            onChange={(e) => setFilterDivision(e.target.value)}
-            className="border p-2 rounded focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
-          >
-            <option value="">Tutte le divisioni</option>
-            <option value="cloud">Cloud</option>
-            <option value="networking">Networking</option>
-            <option value="it-care">IT-Care</option>
-          </select>
-        )}
-
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}

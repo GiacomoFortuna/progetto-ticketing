@@ -172,6 +172,44 @@ router.get('/client-tickets/:client_id', async (req, res) => {
   }
 });
 
+// POST /api/client-auth/change-password
+router.post('/change-password', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: 'Token mancante' });
+
+  const token = authHeader.split(' ')[1];
+  let userEmail;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    userEmail = decoded.email;
+  } catch (err) {
+    return res.status(403).json({ error: 'Token non valido' });
+  }
+
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ error: 'Inserisci vecchia e nuova password' });
+  }
+
+  try {
+    const result = await db.query('SELECT * FROM client_users WHERE email = $1', [userEmail]);
+    const user = result.rows[0];
+    if (!user) return res.status(404).json({ error: 'Utente non trovato' });
+
+    const match = await bcrypt.compare(oldPassword, user.password);
+    if (!match) return res.status(401).json({ error: 'Vecchia password errata' });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE client_users SET password = $1 WHERE email = $2', [hashedPassword, userEmail]);
+
+    res.json({ message: 'Password aggiornata con successo' });
+  } catch (err) {
+    console.error('Errore cambio password client:', err);
+    res.status(500).json({ error: 'Errore interno cambio password' });
+  }
+});
+
 module.exports = router;
 // Questo file gestisce l'autenticazione degli utenti client.
 // Permette il login verificando email e password, e genera un token JWT sicuro.

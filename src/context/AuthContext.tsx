@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.clear();
     setUser(null);
     setToken(null);
-    window.location.href = '/login'; // Forza redirect pulito
+    window.location.href = '/'; // Forza redirect pulito
   };
   // Funzione per aggiornare la password dell'utente
   // Funzione asincrona per aggiornare la password dell'utente

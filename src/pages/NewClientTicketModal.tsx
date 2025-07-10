@@ -45,10 +45,7 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
     if (projectId) formData.append('project_id', String(projectId));
     formData.append('client_id', String(clientId));
     if (attachment) formData.append('attachment', attachment);
-
-    // Calcola division da categoria scelta
-    const division = CATEGORY_TO_DIVISION[category];
-    formData.append('division', division);
+    formData.append('division', CATEGORY_TO_DIVISION[category]);
 
     const token = localStorage.getItem('client_token');
     const res = await fetch('http://localhost:3001/api/clientAuth/client-tickets', {
@@ -76,17 +73,19 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
-        <h2 className="text-xl font-bold mb-4">Crea un nuovo ticket</h2>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 border border-[#429d46]/10">
+        <h2 className="text-2xl font-bold mb-6 text-[#429d46]">
+          Crea un nuovo ticket
+        </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Titolo"
             required
-            className="w-full border p-2 rounded"
+            className="w-full border p-3 rounded-lg text-sm focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
           />
 
           <textarea
@@ -94,14 +93,14 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Descrizione"
             required
-            className="w-full border p-2 rounded h-28"
+            className="w-full border p-3 rounded-lg h-28 text-sm focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
           />
 
           <select
             value={projectId ?? ''}
             onChange={(e) => setProjectId(Number(e.target.value))}
             required
-            className="w-full border p-2 rounded"
+            className="w-full border p-3 rounded-lg text-sm focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
           >
             <option value="">Seleziona un progetto</option>
             {projects.map((p: any) => (
@@ -115,7 +114,7 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             required
-            className="w-full border p-2 rounded"
+            className="w-full border p-3 rounded-lg text-sm focus:ring-2 focus:ring-[#429d46] focus:border-[#429d46] transition"
           >
             <option value="">Scegli il tipo di assistenza</option>
             <option value="rete">Assistenza rete</option>
@@ -126,22 +125,23 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
           <input
             type="file"
             onChange={(e) => setAttachment(e.target.files?.[0] || null)}
-            className="w-full"
+            className="w-full border p-2 rounded-lg text-sm"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           />
 
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="text-sm text-gray-600 underline"
+              className="text-sm text-gray-600 hover:underline"
             >
               Annulla
             </button>
             <button
               type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              className="bg-[#429d46] text-white font-semibold px-5 py-2 rounded-lg shadow hover:bg-[#357a36] transition"
             >
-              Invia
+              Invia richiesta
             </button>
           </div>
         </form>
@@ -151,5 +151,8 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
 };
 
 export default NewClientTicketModal;
-// Note: This component is used to create a new ticket for the client.
-// It includes a form with fields for title, description, project selection, and file attachment.
+// This component allows clients to create a new ticket by filling out a form with title, description, project, category, and optional attachment.
+// It fetches the client's projects and submits the ticket data to the server, handling file uploads and category selection.
+// The modal can be opened and closed, and it calls a callback function to notify the parent component when a new ticket is created successfully.
+// The component uses local state to manage form inputs and fetches projects from the server when the modal is opened.
+// It also handles form submission, including file uploads and error handling.

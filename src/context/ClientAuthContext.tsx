@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 type ClientUser = {
   id: number;
@@ -21,6 +22,7 @@ const ClientAuthContext = createContext<ClientAuthContextType | undefined>(undef
 export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [clientUser, setClientUser] = useState<ClientUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const savedToken = localStorage.getItem('client_token');
@@ -43,6 +45,7 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
     localStorage.removeItem('client_user');
     setToken(null);
     setClientUser(null);
+    navigate('/'); // ✅ redirect alla home pubblica
   };
 
   return (

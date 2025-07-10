@@ -1,0 +1,51 @@
+ID,Titolo,Descrizione,Divisione,Cliente,Progetto,Assegnato a,Stato,Creato il,Iniziato il,Chiuso il,Ore lavorate
+83,"SPAZIO DISCO","abababa",networking,La Friterie,justbob.it,,open,2025-07-08T13:23:38.208Z,,,
+50,"cpu","abc abc ",it-care,At Media,destinationgusto.de,,open,2025-07-07T11:00:22.494Z,,,
+49,"SPAZIO DISCO","spazio disco",cloud,At Media,destinationgusto.de,gfortuna,open,2025-07-07T08:49:35.172Z,,,
+48,"CPU","fafafa",cloud,At Media,destinationgusto.de,,closed,2025-07-07T08:26:11.206Z,2025-07-07T08:26:35.072Z,2025-07-07T08:26:41.146Z,0
+47,"cpu","ddcdcdc",it-care,At Media,destinationgusto.de,,closed,2025-07-04T13:35:59.527Z,2025-07-04T15:45:23.406Z,2025-07-07T08:20:01.952Z,64
+46,"CPU","disanto disanto ",cloud,At Media,destinationgusto.de,,closed,2025-07-03T15:05:24.820Z,2025-07-03T15:05:28.480Z,2025-07-03T15:05:30.521Z,0
+45,"CPU","www",cloud,At Media,destinationgusto.de,,closed,2025-07-03T14:49:14.950Z,2025-07-03T14:56:45.024Z,2025-07-03T14:56:51.938Z,0
+44,"CPU","dddedeede",cloud,La Friterie,justbob.fr,,closed,2025-07-03T14:06:47.006Z,2025-07-07T08:20:13.590Z,2025-07-07T08:20:14.373Z,0
+43,"CPU","wwwwww",cloud,At Media,destinationgusto.de,,closed,2025-07-03T13:53:30.727Z,2025-07-03T13:53:53.186Z,2025-07-03T13:53:54.559Z,
+42,"CPU","BALA",cloud,At Media,destinationgusto.de,,closed,2025-07-01T15:24:15.899Z,2025-07-01T15:24:26.704Z,2025-07-01T15:24:27.965Z,
+41,"vfvfvfv","vfvfvfvf",cloud,At Media,destinationgusto.de,,closed,2025-07-01T15:14:15.733Z,2025-07-01T15:14:18.045Z,2025-07-01T15:14:26.234Z,
+40,"CPU","dedededed",cloud,La Friterie,justbob.it,,closed,2025-07-01T15:08:46.909Z,2025-07-01T15:08:55.419Z,2025-07-01T15:08:59.452Z,
+39,"CPU","saqsqaq",cloud,At Media,destinationgusto.de,,closed,2025-07-01T15:07:24.423Z,2025-07-01T15:13:42.848Z,2025-07-01T15:13:44.397Z,
+38,"aboa","aboa",cloud,At Media,destinationgusto.de,,closed,2025-07-01T15:06:59.965Z,2025-07-01T15:18:59.382Z,2025-07-01T15:19:01.937Z,
+37,"CPU","rereded",cloud,At Media,destinationgusto.de,,closed,2025-07-01T14:19:40.771Z,2025-07-01T14:19:45.785Z,2025-07-01T14:19:48.441Z,
+36,"ddxswsw","swswswsw",it-care,At Media,destinationgusto.de,,closed,2025-07-01T13:37:01.566Z,2025-07-07T08:49:02.628Z,2025-07-07T08:49:11.003Z,0
+35,"bla bla","un due n3 stella",it-care,At Media,destinationgusto.de,,open,2025-07-01T10:21:23.910Z,,,
+34,"disanto","ckodkcdkod",it-care,At Media,destinationgusto.de,,open,2025-07-01T10:08:48.128Z,,,
+33,"DIsanto","bal b la bla",it-care,At Media,destinationgusto.de,,open,2025-07-01T09:59:42.624Z,,,
+31,"SPAZIO DISCO","LVM da espandere",cloud,At Media,destinationgusto.de,gfortuna,closed,2025-06-18T08:58:52.311Z,,2025-07-01T13:34:40.298Z,86
+30,"SPAZIO DISCO","lo spazio a disco è a tappo nella vm di staging",cloud,,,gfortuna,closed,2025-06-18T08:41:11.759Z,,2025-07-01T13:35:13.171Z,86
+29,"ddd","ddddd",networking,At Media,destinationgusto.de,,open,2025-06-17T14:08:10.261Z,,,
+28,"CPU","nvidia",cloud,La Friterie,justbob.it,,closed,2025-06-17T14:04:01.258Z,,2025-07-01T13:35:52.720Z,90
+27,"frffff","ffffff",cloud,At Media,destinationgusto.de,gfortuna,closed,2025-06-17T13:14:18.233Z,2025-07-03T13:49:39.828Z,2025-07-03T13:49:42.179Z,
+26,"fffff","fffff",cloud,At Media,destinationgusto.de,,closed,2025-06-17T13:01:45.874Z,2025-07-01T14:19:11.843Z,2025-07-01T14:19:13.384Z,
+25,"CPU","nvidia",networking,La Friterie,staging.justbob.it,,open,2025-06-17T11:53:14.075Z,,,
+24,"CPU","eeeee",networking,At Media,destinationgusto.de,mrossi,open,2025-06-17T10:20:51.191Z,,,
+23,"CPU","cpu nvidia",cloud,Netminds,needstore.it,,closed,2025-06-17T10:19:19.255Z,,2025-07-01T13:19:01.481Z,93
+22,"CPU","lll",cloud,La Friterie,justbob.es,mcasati,closed,2025-06-13T13:07:49.015Z,2025-07-01T15:24:45.621Z,2025-07-03T13:57:06.945Z,
+21,"cpu","xxxxx",networking,At Media,destinationgusto.de,mlupo,open,2025-06-09T15:11:09.012Z,,,
+20,"CPU","iiii",cloud,At Media,destinationgusto.de,,closed,2025-06-09T13:04:01.860Z,,2025-07-01T15:24:52.815Z,
+19,"CPU","sssss",it-care,At Media,destinationgusto.de,ataccone,open,2025-05-30T15:42:51.044Z,,,
+18,"CPU","xxxxxxx",networking,At Media,destinationgusto.de,,open,2025-05-30T14:46:35.734Z,,,
+17,"Disco a tappo","sssss",cloud,La Friterie,justbob.it,,closed,2025-05-30T09:52:27.937Z,,2025-05-30T09:53:18.389Z,1
+16,"CPU","ssssss",cloud,La Friterie,justbob.it,,closed,2025-05-30T09:41:25.835Z,2025-05-30T13:13:12.699Z,2025-05-30T13:13:14.475Z,1
+14,"Disco a tappo","ddddd",cloud,La Friterie,justbob.it,gfortuna,closed,2025-05-29T10:22:40.847Z,2025-05-30T13:12:51.902Z,2025-05-30T13:12:57.935Z,1
+13,"ciao","rrr",networking,La Friterie,justbob.fr,network_user,open,2025-05-29T09:18:59.876Z,,,
+12,"CPU","wwwww",networking,At Media,destinationgusto.de,network_user,open,2025-05-29T08:31:58.937Z,,,
+11,"eee","eeeee",networking,At Media,destinationgusto.de,network_user,closed,2025-05-29T08:30:41.773Z,2025-05-30T13:13:22.499Z,2025-05-30T13:13:24.207Z,1
+10,"Connessione lenta sul sito","Il sito disantomusica.it è lento a caricare",cloud,Netminds,needstore.it,gfortuna,closed,2025-05-29T08:23:42.098Z,,2025-05-29T08:31:29.804Z,1
+9,"aaaa","aaaaa",networking,At Media,destinationgusto.de,,closed,2025-05-28T15:39:29.405Z,,2025-05-30T09:52:58.099Z,13
+8,"ram piena","ce las bgf d dvrfe",cloud,La Friterie,justbob.fr,Matteo gabrieli ,closed,2025-05-27T19:43:19.249Z,,2025-05-28T07:24:40.237Z,0
+7,"Disco a tappo","disco perennemente a tappo",cloud,At Media,destinationgusto.de,teo,closed,2025-05-27T14:11:29.429Z,,2025-05-28T07:24:53.911Z,3
+6,"Disco a tappo","blblb",cloud,At Media,destinationgusto.de,dcdcdcdcdcd,closed,2025-05-27T14:05:45.036Z,,2025-05-27T14:10:53.055Z,1
+5,"rete","il sito x risponde dopo troppo",networking,La Friterie,justbob.es,Michael Lupo,in-progress,2025-05-27T10:49:53.629Z,,,
+4,"cpu","tappo cpu",cloud,,,Matteo gabrieli ,closed,2025-05-27T10:26:44.768Z,,2025-06-10T10:37:00.881Z,91
+3,"CPU","Utilizzo della cpu al limite ",cloud,,,Matteo gabrieli ,closed,2025-05-26T15:42:49.592Z,,,
+2,"Disco a tappo","ciao , ci siamo accorti che sulla vm(x) abbiamo quasi esaurito lo spazio disco , potete guardarci?
+",cloud,,,Matteo gabrieli ,closed,2025-05-26T14:28:31.719Z,,,
+1,"Problema connessione VPN","utente non riesce ad accedere alla VPN da remoto",networking,,,giacomo.fortuna,closed,2025-05-26T13:46:34.088Z,,,

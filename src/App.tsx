@@ -13,6 +13,8 @@ import Sidebar from './components/Sidebar';
 import Profile from './pages/Profile';
 import LayoutCliente from './components/LayoutCliente'; // usa il tuo componente
 // Se in futuro usi ClientProfile, importa anche quello
+import ClientProfile from './pages/ClientProfile';
+import PlanetelInfo from './pages/PlanetelInfo';
 
 const LayoutAziendale = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -81,8 +83,6 @@ const App = () => {
             </ClientProtectedRoute>
           }
         />
-        {/* Se in futuro hai una pagina profilo cliente, aggiungi qui */}
-        {/* 
         <Route
           path="/client-profile"
           element={
@@ -93,7 +93,17 @@ const App = () => {
             </ClientProtectedRoute>
           }
         />
-        */}
+        <Route
+          path="/planetel-info"
+          element={
+            <ClientProtectedRoute>
+              <LayoutCliente>
+                <PlanetelInfo />
+              </LayoutCliente>
+            </ClientProtectedRoute>
+          }
+        />
+        {/* ...other client routes... */}
       </Routes>
     </>
   );
