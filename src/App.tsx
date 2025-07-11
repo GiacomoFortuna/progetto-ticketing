@@ -17,6 +17,7 @@ import ClientProfile from './pages/ClientProfile';
 import PlanetelInfo from './pages/PlanetelInfo';
 import { useAuth } from './context/AuthContext';
 import { useClientAuth } from './context/ClientAuthContext';
+import DashboardStats from './pages/DashboardStats';
 
 const LayoutAziendale = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -25,9 +26,9 @@ const LayoutAziendale = ({ children }: { children: React.ReactNode }) => {
   const { loading: authLoading } = useAuth();
   const { loading: clientLoading } = useClientAuth();
 
-if (authLoading || clientLoading) {
-  return <div className="text-center mt-32 text-lg font-semibold">Caricamento in corso...</div>;
-}
+  if (authLoading || clientLoading) {
+    return <div className="text-center mt-32 text-lg font-semibold">Caricamento in corso...</div>;
+  }
 
   return (
     <div className="bg-[#f2f2f2] min-h-screen">
@@ -77,7 +78,26 @@ const App = () => {
                 </PrivateRoute>
               }
             />
-            <Route path="/register" element={<UserRegister />} />
+            <Route
+              path="/register"
+              element={
+                <PrivateRoute>
+                  <LayoutAziendale>
+                    <UserRegister />
+                  </LayoutAziendale>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/dashboard-stats"
+              element={
+                <PrivateRoute>
+                  <LayoutAziendale>
+                    <DashboardStats />
+                  </LayoutAziendale>
+                </PrivateRoute>
+              }
+            />
           </>
         )}
 

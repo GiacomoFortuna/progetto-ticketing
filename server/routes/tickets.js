@@ -611,4 +611,29 @@ router.patch('/:id/notes', require('../middleware/authMiddleware'), async (req, 
   }
 });
 
+// GET /api/tickets/stats
+router.get('/stats', authMiddleware, async (req, res) => {
+  try {
+    const byStatus = await db.query(`
+      SELECT status, COUNT(*) AS count
+      FROM tickets
+      GROUP BY status
+    `);
+
+    const byDivision = await db.query(`
+      SELECT division, COUNT(*) AS count
+      FROM tickets
+      GROUP BY division
+    `);
+
+    res.json({
+      byStatus: byStatus.rows,
+      byDivision: byDivision.rows,
+    });
+  } catch (err) {
+    console.error('Errore stats:', err);
+    res.status(500).json({ error: 'Errore nel calcolo delle statistiche' });
+  }
+});
+
 module.exports = router;

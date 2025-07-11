@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import {
   Home,
   ClipboardList,
-  UserPlus,
   UserCircle,
   ChevronLeft,
   ChevronRight,
@@ -16,7 +15,7 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { role } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -66,18 +65,31 @@ const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
           {isOpen && <span>Ticket</span>}
         </Link>
 
-        {user?.role === 'manager' && (
-          <Link
-            to="/register"
-            className={`flex items-center gap-3 p-3 rounded-lg font-medium transition-all ${
-              isActive('/register')
-                ? 'bg-white/20 shadow font-bold'
-                : 'hover:bg-lime-300/80 hover:text-[#429d46] hover:font-bold'
-            }`}
-          >
-            <UserPlus size={20} />
-            {isOpen && <span>Registra utente</span>}
-          </Link>
+        {role === 'manager' && (
+          <>
+            <Link
+              to="/dashboard-stats"
+              className={`flex items-center gap-3 p-3 rounded-lg font-medium transition-all ${
+                isActive('/dashboard-stats')
+                  ? 'bg-white/20 shadow font-bold'
+                  : 'hover:bg-lime-300/80 hover:text-[#429d46] hover:font-bold'
+              }`}
+            >
+              <ClipboardList size={20} />
+              {isOpen && <span>Dashboard</span>}
+            </Link>
+            <Link
+              to="/register"
+              className={`flex items-center gap-3 p-3 rounded-lg font-medium transition-all ${
+                isActive('/register')
+                  ? 'bg-white/20 shadow font-bold'
+                  : 'hover:bg-lime-300/80 hover:text-[#429d46] hover:font-bold'
+              }`}
+            >
+              <UserCircle size={20} />
+              {isOpen && <span>Registra utente</span>}
+            </Link>
+          </>
         )}
 
         <Link

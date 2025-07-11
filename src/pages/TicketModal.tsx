@@ -137,6 +137,13 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, 
     }
   };
 
+  const handleCloseTicket = () => {
+    const conferma = window.confirm('⚠️ Sei sicuro di voler chiudere definitivamente questo ticket?');
+    if (conferma && ticket) {
+      handleStatusChange('closed');
+    }
+  };
+
   if (!isOpen || !ticket) return null;
 
   return (
@@ -284,7 +291,7 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, 
           )}
           {canClose && (
             <button
-              onClick={() => handleStatusChange('closed')}
+              onClick={handleCloseTicket}
               className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
             >
               Chiudi
