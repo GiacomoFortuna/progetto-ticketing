@@ -1,8 +1,8 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import logoPlanetel from '../assets/logo-planetel.svg';
-import animationLogo from '../video/animation_logo.mp4';
+import logoPlanetel from '../assets/jticket3.png';
+import animationLogo from '../video/jj2.mp4';
 
 function Home() {
   const { user } = useAuth();

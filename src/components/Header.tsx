@@ -1,7 +1,7 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import logo from '../assets/logo-planetel.svg';
+import logo from '../assets/jticket3.png';
 import UserSettingsPopup from '../pages/UserSettingPopup';
 
 const Header = () => {
@@ -17,7 +17,7 @@ const Header = () => {
   return (
     <header className="bg-white border-b shadow fixed w-full left-0 top-0 h-16 flex items-center justify-between px-4 md:pl-72 z-40">
       <div className="flex items-center gap-4">
-        <img src={logo} alt="Planetel Logo" className="h-10" />
+        <img src={logo} alt="Planetel Logo" className="h-10 w-auto" />
       </div>
 
       {user && (

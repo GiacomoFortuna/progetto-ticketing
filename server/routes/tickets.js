@@ -89,10 +89,18 @@ router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
     params.push(division);
   }
 
-  // Filtro per search (titolo o descrizione)
+  // Filtro per search (titolo o descrizione o id)
   if (req.query.search) {
-    whereClauses.push(`(t.title ILIKE $${params.length + 1} OR t.description ILIKE $${params.length + 1})`);
-    params.push(`%${req.query.search}%`);
+    const searchTerm = req.query.search.trim();
+    const idSearch = parseInt(searchTerm.replace(/[^0-9]/g, ''), 10);
+
+    if (!isNaN(idSearch)) {
+      whereClauses.push(`(t.id = $${params.length + 1} OR t.title ILIKE $${params.length + 2} OR t.description ILIKE $${params.length + 3})`);
+      params.push(idSearch, `%${searchTerm}%`, `%${searchTerm}%`);
+    } else {
+      whereClauses.push(`(t.title ILIKE $${params.length + 1} OR t.description ILIKE $${params.length + 2})`);
+      params.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
   }
 
   // Filtro per assigned_to
