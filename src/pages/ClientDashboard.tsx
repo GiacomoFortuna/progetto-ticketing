@@ -13,6 +13,8 @@ type Ticket = {
   attachment?: string;
 };
 
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
 const ClientDashboard = () => {
   const { clientUser } = useClientAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -29,7 +31,7 @@ const ClientDashboard = () => {
         if (!token) throw new Error('Token non trovato');
 
         const res = await fetch(
-          `http://localhost:3001/api/clientAuth/client-tickets/${clientUser.client_id}`,
+          `${baseUrl}/api/clientAuth/client-tickets/${clientUser.client_id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

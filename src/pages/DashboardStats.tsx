@@ -4,6 +4,8 @@ import {
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
 const COLORS = ['#429d46', '#ffbb28', '#ff8042', '#8884d8', '#e11d48', '#0ea5e9'];
 
 type StatEntry = { status: string; count: number };
@@ -39,9 +41,10 @@ const DashboardStats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('http://localhost:3001/api/tickets/stats', {
+        const res = await fetch(`${baseUrl}/api/tickets/stats`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (!res.ok) throw new Error('Errore nel recupero delle statistiche');
         const data = await res.json();
         setByStatus(data.byStatus || []);
         setByDivision(data.byDivision || []);
@@ -111,7 +114,7 @@ const DashboardStats = () => {
                   <XAxis dataKey="status" stroke="#8884d8" />
                   <YAxis allowDecimals={false} />
                   <Tooltip
-                    formatter={(value: any, name: any, props: any) => [`${value} ticket`, 'Totale']}
+                    formatter={(value: any) => [`${value} ticket`, 'Totale']}
                     labelFormatter={(label) => `Stato: ${label}`}
                   />
                   <Bar dataKey="count">
@@ -152,7 +155,7 @@ const DashboardStats = () => {
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
                   <Pie
-                    data={byDivision.map((d, idx) => ({
+                    data={byDivision.map((d) => ({
                       ...d,
                       division: formatDivision(d.division),
                     }))}
@@ -170,7 +173,7 @@ const DashboardStats = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: any, name: any, props: any) => [`${value} ticket`, 'Totale']}
+                    formatter={(value: any, _unused: any) => [`${value} ticket`, 'Totale']}
                     labelFormatter={(label) => `Divisione: ${label}`}
                   />
                   <Legend verticalAlign="bottom" height={36} />

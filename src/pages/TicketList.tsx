@@ -32,13 +32,15 @@ const TicketList = () => {
   const [error, setError] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc'); // default: più recente prima
 
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
   // Fetch tickets
   const fetchTickets = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      let url = 'http://localhost:3001/api/tickets';
+      let url = `${baseUrl}/api/tickets`;
       const params: string[] = [];
 
       if (searchTerm) params.push(`search=${searchTerm}`);
@@ -75,7 +77,7 @@ const TicketList = () => {
 
   const updateTicketStatus = async (id: number, newStatus: string) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/tickets/${id}/status`, {
+      const res = await fetch(`${baseUrl}/api/tickets/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -192,7 +194,7 @@ const TicketList = () => {
       if (newTicket.assigned_to) formData.append('assigned_to', newTicket.assigned_to);
       if (attachment) formData.append('attachment', attachment);
 
-      const res = await fetch('http://localhost:3001/api/tickets', {
+      const res = await fetch(`${baseUrl}/api/tickets`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -224,7 +226,7 @@ const TicketList = () => {
   };
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/tickets/clients')
+    fetch(`${baseUrl}/api/tickets/clients`)
       .then((res) => res.json())
       .then(setClients)
       .catch((err) => {
@@ -235,7 +237,7 @@ const TicketList = () => {
 
   useEffect(() => {
     if (!selectedClient) return;
-    fetch(`http://localhost:3001/api/tickets/infrastructures?client_id=${selectedClient}`)
+    fetch(`${baseUrl}/api/tickets/infrastructures?client_id=${selectedClient}`)
       .then((res) => res.json())
       .then(setInfrastructures)
       .catch(() => alert('Errore nel caricamento infrastrutture'));
@@ -243,7 +245,7 @@ const TicketList = () => {
 
   useEffect(() => {
     if (!selectedInfrastructure) return;
-    fetch(`http://localhost:3001/api/tickets/projects?infrastructure_id=${selectedInfrastructure}`)
+    fetch(`${baseUrl}/api/tickets/projects?infrastructure_id=${selectedInfrastructure}`)
       .then((res) => res.json())
       .then(setProjects)
       .catch(() => alert('Errore nel caricamento progetti'));
@@ -501,7 +503,7 @@ const TicketList = () => {
 
                   if (division) {
                     try {
-                      const res = await fetch(`http://localhost:3001/api/users/by-division?division=${division}`);
+                      const res = await fetch(`${baseUrl}/api/users/by-division?division=${division}`);
                       const data = await res.json();
                       setAvailableUsers(data);
                     } catch (err) {

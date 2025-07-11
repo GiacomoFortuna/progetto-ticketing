@@ -55,6 +55,8 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, 
   const [user, setUser] = useState<any>(null);
   const [noteInput, setNoteInput] = useState(''); // inserisci in alto
 
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
   useEffect(() => {
     setTicket(initialTicket);
   }, [initialTicket]);
@@ -67,7 +69,7 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, 
 
   useEffect(() => {
     if (ticket?.division) {
-      fetch(`http://localhost:3001/api/users/by-division?division=${ticket.division}`, {
+      fetch(`${baseUrl}/api/users/by-division?division=${ticket.division}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -92,7 +94,7 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, 
   // Funzione per assegnare il ticket (solo manager)
   const handleAssign = async (ticketId: number, username: string) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/tickets/${ticketId}/assign`, {
+      const res = await fetch(`${baseUrl}/api/tickets/${ticketId}/assign`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +119,7 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, 
     if (!ticket || !noteInput.trim()) return;
 
     try {
-      const res = await fetch(`http://localhost:3001/api/tickets/${ticket.id}/notes`, {
+      const res = await fetch(`${baseUrl}/api/tickets/${ticket.id}/notes`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

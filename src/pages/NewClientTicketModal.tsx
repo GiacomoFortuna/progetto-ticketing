@@ -13,6 +13,8 @@ const CATEGORY_TO_DIVISION: Record<string, string> = {
   'tecnica': 'it-care',
 };
 
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
 const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
   isOpen,
   onClose,
@@ -28,7 +30,7 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
 
   useEffect(() => {
     const fetchProjects = async () => {
-      const res = await fetch(`http://localhost:3001/api/clientAuth/client-projects/${clientId}`);
+      const res = await fetch(`${baseUrl}/api/clientAuth/client-projects/${clientId}`);
       const data = await res.json();
       setProjects(data);
     };
@@ -48,7 +50,7 @@ const NewClientTicketModal: React.FC<NewClientTicketModalProps> = ({
     formData.append('division', CATEGORY_TO_DIVISION[category]);
 
     const token = localStorage.getItem('client_token');
-    const res = await fetch('http://localhost:3001/api/clientAuth/client-tickets', {
+    const res = await fetch(`${baseUrl}/api/clientAuth/client-tickets`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

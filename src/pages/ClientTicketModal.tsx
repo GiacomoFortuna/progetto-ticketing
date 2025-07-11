@@ -34,6 +34,8 @@ const ClientTicketModal: React.FC<ClientTicketModalProps> = ({
   onClose,
   ticket,
 }) => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
   if (!isOpen) return null;
 
   return (
@@ -87,7 +89,7 @@ const ClientTicketModal: React.FC<ClientTicketModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">Allegato</label>
             {ticket.attachment ? (
               <a
-                href={`http://localhost:3001/api/tickets/files/${ticket.attachment}`}
+                href={`${baseUrl}/api/tickets/files/${ticket.attachment}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block px-4 py-2 bg-[#429d46] text-white rounded shadow hover:bg-[#357a36] transition"

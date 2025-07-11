@@ -1,6 +1,8 @@
 import { useClientAuth } from '../context/ClientAuthContext';
 import { useState } from 'react';
 
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
 const ClientProfile = () => {
   const { clientUser } = useClientAuth();
   const [oldPassword, setOldPassword] = useState('');
@@ -14,7 +16,7 @@ const ClientProfile = () => {
     setErrorMessage('');
 
     try {
-      const res = await fetch('http://localhost:3001/api/clientAuth/change-password', {
+      const res = await fetch(`${baseUrl}/api/clientAuth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
