@@ -104,24 +104,25 @@ router.get('/client-projects/:client_id', async (req, res) => {
 
 // POST /api/clientAuth/client-tickets
 router.post('/client-tickets', upload.single('attachment'), async (req, res) => {
-  const { title, description, client_id, project_id, division } = req.body;
-  const filename = req.file ? req.file.filename : null;
+  const { title, description, client_id, project_id, division } = req.body; // Estrae i dati dal body della richiesta
+  const filename = req.file ? req.file.filename : null; // Ottiene il nome del file allegato se presente
 
   // 🔐 Recupera l'utente loggato dal token per salvare "created_by"
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'Token mancante' });
+  const authHeader = req.headers.authorization; // Ottiene l'header di autorizzazione
+  if (!authHeader) return res.status(401).json({ error: 'Token mancante' }); // Se manca il token, restituisce errore 401
 
-  const token = authHeader.split(' ')[1];
-  let createdBy;
+  const token = authHeader.split(' ')[1]; // Estrae il token JWT dall'header
+  let createdBy; // Variabile per memorizzare l'email dell'utente creatore
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    createdBy = decoded.email; // oppure decoded.name se preferisci
+    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Verifica e decodifica il token JWT
+    createdBy = decoded.email; // Usa l'email decodificata come creatore del ticket
   } catch (err) {
-    return res.status(403).json({ error: 'Token non valido' });
+    return res.status(403).json({ error: 'Token non valido' }); // Se il token non è valido, restituisce errore 403
   }
 
   try {
+    // Inserisce il nuovo ticket nel database
     const result = await db.query(
       `INSERT INTO tickets (title, description, division, status, created_at, project_id, client_id, attachment, created_by)
        VALUES ($1, $2, $3, 'open', NOW(), $4, $5, $6, $7)
@@ -129,21 +130,21 @@ router.post('/client-tickets', upload.single('attachment'), async (req, res) => 
       [title, description, division, project_id, client_id, filename, createdBy]
     );
 
-    const newTicket = result.rows[0];
+    const newTicket = result.rows[0]; // Ottiene il ticket appena creato
 
     // Recupera nome cliente (richiesto da Telegram)
-    const clientResult = await db.query('SELECT name FROM clients WHERE id = $1', [client_id]);
-    newTicket.client_name = clientResult.rows[0]?.name;
+    const clientResult = await db.query('SELECT name FROM clients WHERE id = $1', [client_id]); // Query per ottenere il nome del cliente
+    newTicket.client_name = clientResult.rows[0]?.name; // Aggiunge il nome cliente al ticket
 
     // Invia notifica solo se division è "cloud"
     if (division === 'cloud') {
-      sendTelegramNotification(newTicket);
+      sendTelegramNotification(newTicket); // Invia la notifica Telegram per i ticket cloud
     }
 
-    res.status(201).json(newTicket);
+    res.status(201).json(newTicket); // Restituisce il ticket creato come risposta JSON
   } catch (err) {
-    console.error('Errore creazione ticket client:', err);
-    res.status(500).json({ error: 'Errore creazione ticket' });
+    console.error('Errore creazione ticket client:', err); // Logga eventuali errori
+    res.status(500).json({ error: 'Errore creazione ticket' }); // Restituisce errore 500 in caso di problemi
   }
 });
 

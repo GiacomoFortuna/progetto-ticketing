@@ -50,9 +50,9 @@ function calcolaOreLavorative(startDate, endDate) {
 // GET /api/tickets → restituisce tutti i ticket
 router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
   // Fix: Check if req.user exists and fallback if not
-  const user = req.user || {};
-  const division = user.division;
-  const isManager = user.role === 'manager' || user.is_manager === true;
+  const user = req.user || {}; // Recupera l'utente autenticato dalla request, fallback a oggetto vuoto
+  const division = user.division; // Divisione dell'utente
+  const isManager = user.role === 'manager' || user.is_manager === true; // Verifica se l'utente è manager
 
   let query = `
     SELECT 
@@ -76,28 +76,31 @@ router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
     LEFT JOIN projects p ON t.project_id = p.id
     LEFT JOIN infrastructures i ON p.infrastructure_id = i.id
     LEFT JOIN clients c ON i.client_id = c.id
-  `;
-  const params = [];
-  let whereClauses = [];
+  `; // Query base per recuperare i ticket con join su progetti, infrastrutture e clienti
+
+  const params = []; // Array per i parametri della query parametrizzata
+  let whereClauses = []; // Array per le condizioni WHERE
 
   // Filtro per divisione se manager o se query param presente
   if (isManager && req.query.division) {
-    whereClauses.push('t.division = $' + (params.length + 1));
-    params.push(req.query.division);
+    whereClauses.push('t.division = $' + (params.length + 1)); // Aggiunge filtro divisione per manager
+    params.push(req.query.division); // Aggiunge valore divisione ai parametri
   } else if (!isManager && division && !req.query.created_by) {
-    whereClauses.push('t.division = $' + (params.length + 1));
-    params.push(division);
+    whereClauses.push('t.division = $' + (params.length + 1)); // Filtro divisione per utente non manager
+    params.push(division); // Aggiunge valore divisione ai parametri
   }
 
   // Filtro per search (titolo o descrizione o id)
   if (req.query.search) {
-    const searchTerm = req.query.search.trim();
-    const idSearch = parseInt(searchTerm.replace(/[^0-9]/g, ''), 10);
+    const searchTerm = req.query.search.trim(); // Prende il termine di ricerca e lo pulisce
+    const idSearch = parseInt(searchTerm.replace(/[^0-9]/g, ''), 10); // Prova a estrarre un numero per la ricerca id
 
     if (!isNaN(idSearch)) {
+      // Se è un numero valido, cerca per id, titolo o descrizione
       whereClauses.push(`(t.id = $${params.length + 1} OR t.title ILIKE $${params.length + 2} OR t.description ILIKE $${params.length + 3})`);
       params.push(idSearch, `%${searchTerm}%`, `%${searchTerm}%`);
     } else {
+      // Altrimenti cerca solo per titolo o descrizione
       whereClauses.push(`(t.title ILIKE $${params.length + 1} OR t.description ILIKE $${params.length + 2})`);
       params.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
@@ -105,27 +108,27 @@ router.get('/', require('../middleware/authMiddleware'), async (req, res) => {
 
   // Filtro per assigned_to
   if (req.query.assigned_to) {
-    whereClauses.push(`t.assigned_to = $${params.length + 1}`);
-    params.push(req.query.assigned_to);
+    whereClauses.push(`t.assigned_to = $${params.length + 1}`); // Filtro per utente assegnato
+    params.push(req.query.assigned_to); // Aggiunge valore ai parametri
   }
 
   // Filtro per created_by
   if (req.query.created_by) {
-    whereClauses.push(`t.created_by = $${params.length + 1}`);
-    params.push(req.query.created_by);
+    whereClauses.push(`t.created_by = $${params.length + 1}`); // Filtro per utente creatore
+    params.push(req.query.created_by); // Aggiunge valore ai parametri
   }
 
   if (whereClauses.length > 0) {
-    query += ' WHERE ' + whereClauses.join(' AND ');
+    query += ' WHERE ' + whereClauses.join(' AND '); // Se ci sono filtri, aggiunge la clausola WHERE
   }
-  query += ' ORDER BY t.created_at DESC';
+  query += ' ORDER BY t.created_at DESC'; // Ordina i ticket per data di creazione decrescente
 
   try {
-    const result = await db.query(query, params);
-    res.json(result.rows);
+    const result = await db.query(query, params); // Esegue la query con i parametri
+    res.json(result.rows); // Restituisce i risultati come JSON
   } catch (err) {
-    console.error('Errore nel recupero dei ticket:', err);
-    res.status(500).json({ error: 'Errore nel recupero dei ticket' });
+    console.error('Errore nel recupero dei ticket:', err); // Logga eventuali errori
+    res.status(500).json({ error: 'Errore nel recupero dei ticket' }); // Restituisce errore 500
   }
 });
 

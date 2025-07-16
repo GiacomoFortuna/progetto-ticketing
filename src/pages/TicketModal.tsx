@@ -116,44 +116,48 @@ const TicketModal: React.FC<Props> = ({ isOpen, ticket: initialTicket, onClose, 
 
   // Funzione per aggiungere una nota
   const handleAddNote = async () => {
-    if (!ticket || !noteInput.trim()) return;
+    if (!ticket || !noteInput.trim()) return; // Se non c'è ticket o la nota è vuota, esce
 
     try {
+      // Effettua la richiesta PATCH per aggiungere una nota al ticket
       const res = await fetch(`${baseUrl}/api/tickets/${ticket.id}/notes`, {
-        method: 'PATCH',
+        method: 'PATCH', // Metodo PATCH
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json', // Indica che il body è in JSON
+          Authorization: `Bearer ${localStorage.getItem('token')}`, // Invia il token JWT
         },
-        body: JSON.stringify({ new_note: noteInput }),
+        body: JSON.stringify({ new_note: noteInput }), // Invia la nuova nota nel body
       });
 
-      if (!res.ok) throw new Error('Errore durante l\'aggiunta della nota');
+      if (!res.ok) throw new Error('Errore durante l\'aggiunta della nota'); // Se la risposta non è ok, lancia errore
 
-      const updatedTicket = await res.json();
-      setTicket(updatedTicket); // aggiorna con le note nuove
-      setNoteInput('');
+      const updatedTicket = await res.json(); // Parsea la risposta JSON
+      setTicket(updatedTicket); // Aggiorna lo stato del ticket con le note nuove
+      setNoteInput(''); // Resetta il campo nota
     } catch (err) {
-      console.error(err);
-      alert('Errore durante l\'aggiunta della nota');
+      console.error(err); // Logga eventuali errori
+      alert('Errore durante l\'aggiunta della nota'); // Mostra errore all'utente
     }
   };
 
+  // Funzione per chiudere definitivamente il ticket (con conferma)
   const handleCloseTicket = () => {
-    const conferma = window.confirm('⚠️ Sei sicuro di voler chiudere definitivamente questo ticket?');
+    const conferma = window.confirm('⚠️ Sei sicuro di voler chiudere definitivamente questo ticket?'); // Mostra conferma
     if (conferma && ticket) {
-      handleStatusChange('closed');
+      handleStatusChange('closed'); // Se confermato, cambia lo stato a "closed"
     }
   };
 
+  // Se la modale non è aperta o non c'è ticket, non renderizza nulla
   if (!isOpen || !ticket) return null;
 
+  // Render della modale
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative">
         {/* Bottone di chiusura */}
         <button
-          onClick={onClose}
+          onClick={onClose} // Chiude la modale al click
           className="absolute top-3 right-4 text-2xl text-gray-500 hover:text-red-500"
         >
           &times;

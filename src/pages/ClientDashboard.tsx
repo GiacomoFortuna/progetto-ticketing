@@ -1,8 +1,10 @@
+// Importa gli hook di React e i componenti necessari
 import { useEffect, useState } from 'react';
 import { useClientAuth } from '../context/ClientAuthContext';
 import ClientTicketModal from './ClientTicketModal';
 import NewClientTicketModal from './NewClientTicketModal';
 
+// Definisce il tipo Ticket per tipizzare i dati dei ticket
 type Ticket = {
   id: number;
   title: string;
@@ -13,23 +15,36 @@ type Ticket = {
   attachment?: string;
 };
 
+// Ottiene la base URL dalle variabili d'ambiente Vite
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
+// Componente principale della dashboard cliente
 const ClientDashboard = () => {
+  // Recupera l'utente client autenticato dal context
   const { clientUser } = useClientAuth();
+
+  // Stato per la lista dei ticket
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  // Stato per il ticket selezionato (per la modale dettaglio)
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  // Stato per mostrare/nascondere la modale dettaglio ticket
   const [modalOpen, setModalOpen] = useState(false);
+  // Stato per mostrare/nascondere la modale di creazione ticket
   const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
 
+  // Effetto per caricare i ticket del cliente al mount o quando cambia clientUser
   useEffect(() => {
+    // Se non c'è utente autenticato, non fa nulla
     if (!clientUser) return;
 
+    // Funzione asincrona per recuperare i ticket dal backend
     const fetchTickets = async () => {
       try {
+        // Recupera il token dal localStorage
         const token = localStorage.getItem('client_token');
         if (!token) throw new Error('Token non trovato');
 
+        // Effettua la richiesta GET ai ticket del cliente
         const res = await fetch(
           `${baseUrl}/api/clientAuth/client-tickets/${clientUser.client_id}`,
           {
@@ -39,20 +54,26 @@ const ClientDashboard = () => {
           }
         );
 
+        // Se la risposta non è ok, lancia errore
         if (!res.ok) throw new Error('Errore nel recupero dei ticket');
+        // Parsea la risposta JSON
         const data = await res.json();
+        // Aggiorna lo stato con i ticket ricevuti
         setTickets(data);
       } catch (err) {
+        // Logga eventuali errori
         console.error('Errore nel recupero dei ticket:', err);
       }
     };
 
+    // Chiama la funzione di fetch
     fetchTickets();
   }, [clientUser]);
 
+  // Render della dashboard
   return (
     <div className="max-w-5xl mx-auto mt-10 p-6">
-      {/* Header */}
+      {/* Header con titolo e bottone per nuovo ticket */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-extrabold text-[#429d46]">
           🎫 Area Cliente
@@ -65,7 +86,7 @@ const ClientDashboard = () => {
         </button>
       </div>
 
-      {/* Info utente */}
+      {/* Info utente cliente */}
       <div className="bg-white shadow-md rounded-xl p-4 mb-8 border border-[#429d46]/10">
         <p className="text-gray-600">
           Benvenuto <span className="font-semibold">{clientUser?.name}</span>
@@ -75,12 +96,14 @@ const ClientDashboard = () => {
         </p>
       </div>
 
-      {/* Lista Ticket */}
+      {/* Lista dei ticket */}
       <h2 className="text-xl font-semibold text-[#429d46] mb-4">I tuoi ticket</h2>
 
+      {/* Se non ci sono ticket, mostra messaggio */}
       {tickets.length === 0 ? (
         <div className="text-gray-500 italic">Nessun ticket presente.</div>
       ) : (
+        // Altrimenti mostra la griglia dei ticket
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {tickets.map((ticket) => (
             <div
@@ -134,7 +157,7 @@ const ClientDashboard = () => {
   );
 };
 
-// Colori status coerenti con quelli aziendali
+// Funzione per colorare lo stato dei ticket (usata per badge colorati)
 function getStatusColor(status: string) {
   switch (status) {
     case 'open':
@@ -151,5 +174,5 @@ function getStatusColor(status: string) {
 }
 
 export default ClientDashboard;
-// Note: This component is the client dashboard where users can view and manage their tickets.
-// It includes functionality to create new tickets and view details of existing ones.
+// Note: Questo componente è la dashboard cliente dove gli utenti possono vedere e gestire i propri ticket.
+// Include la funzionalità per creare nuovi ticket e visualizzare i dettagli di quelli esistenti.

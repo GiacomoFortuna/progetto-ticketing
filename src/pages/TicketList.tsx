@@ -182,46 +182,46 @@ const TicketList = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    e.preventDefault(); // Previene il comportamento di default del form
 
     try {
-      const formData = new FormData();
-      formData.append('title', newTicket.title);
-      formData.append('description', newTicket.description);
-      formData.append('division', newTicket.division);
-      formData.append('client_id', newTicket.client);
-      formData.append('project_id', newTicket.project_id);
-      if (newTicket.assigned_to) formData.append('assigned_to', newTicket.assigned_to);
-      if (attachment) formData.append('attachment', attachment);
+      const formData = new FormData(); // Crea un oggetto FormData per inviare dati multipart
+      formData.append('title', newTicket.title); // Aggiunge il titolo del ticket
+      formData.append('description', newTicket.description); // Aggiunge la descrizione
+      formData.append('division', newTicket.division); // Aggiunge la divisione
+      formData.append('client_id', newTicket.client); // Aggiunge l'id cliente
+      formData.append('project_id', newTicket.project_id); // Aggiunge l'id progetto
+      if (newTicket.assigned_to) formData.append('assigned_to', newTicket.assigned_to); // Se presente, aggiunge l'assegnatario
+      if (attachment) formData.append('attachment', attachment); // Se presente, aggiunge il file allegato
 
       const res = await fetch(`${baseUrl}/api/tickets`, {
-        method: 'POST',
+        method: 'POST', // Metodo POST per creare il ticket
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`, // Invia il token JWT per autenticazione
         },
-        body: formData,
+        body: formData, // Invia i dati del form
       });
 
-      if (!res.ok) throw new Error('Errore nella creazione del ticket');
+      if (!res.ok) throw new Error('Errore nella creazione del ticket'); // Se la risposta non è ok, lancia errore
 
-      await fetchTickets();
-      setShowModal(false);
+      await fetchTickets(); // Aggiorna la lista dei ticket dopo la creazione
+      setShowModal(false); // Chiude la modale di creazione ticket
       setNewTicket({
-        title: '',
-        description: '',
-        division: '',
-        client: '',
-        project_id: '',
-        assigned_to: '',
+        title: '', // Resetta il titolo
+        description: '', // Resetta la descrizione
+        division: '', // Resetta la divisione
+        client: '', // Resetta il cliente
+        project_id: '', // Resetta il progetto
+        assigned_to: '', // Resetta l'assegnatario
       });
-      setAttachment(null);
-      setSelectedClient('');
-      setSelectedInfrastructure('');
-      setProjects([]);
-      setInfrastructures([]);
+      setAttachment(null); // Resetta l'allegato
+      setSelectedClient(''); // Resetta il cliente selezionato
+      setSelectedInfrastructure(''); // Resetta l'infrastruttura selezionata
+      setProjects([]); // Resetta la lista progetti
+      setInfrastructures([]); // Resetta la lista infrastrutture
     } catch (err) {
-      console.error(err);
-      alert('Errore nella creazione del ticket');
+      console.error(err); // Logga eventuali errori
+      alert('Errore nella creazione del ticket'); // Mostra errore all'utente
     }
   };
 
